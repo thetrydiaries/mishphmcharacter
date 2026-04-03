@@ -81,18 +81,18 @@ cached so the illustrator can work without a constant connection.
   supabase.js                         Supabase client
 
 /assets                               Hand-drawn PNG assets (630×880, RGBA)
-  /hair_back                          Hair bulk/length/shape — renders behind face (z=1)
-  /face                               Face shape — renders above hair_back (z=2)
-  /body                               Body silhouette (z=3)
-  /outfit                             Clothing overlay (z=3)
-  /facialhair                         Beard/stubble/none (z=4)
-  /nose                               (z=5)
-  /mouth                              (z=6)
-  /eyes                               Drawn in real colour (z=7)
-  /twinkle                            Eye shine sparkle — or transparent 'none' (z=8)
-  /brows                              (z=9)
-  /accessories                        Glasses/earrings — drawn in real colour (z=10)
-  /hair_front                         Fringe/bangs — renders over face (z=11)
+  /hair_back                          Hair bulk/length/shape — renders behind everything (z=1)
+  /body                               Body silhouette — tinted to skin tone (z=2)
+  /face                               Face shape — tinted to skin tone (z=3)
+  /outfit                             Clothing overlay — tinted to outfit colour (z=4)
+  /facialhair                         Beard/stubble/none (z=5)
+  /nose                               (z=6)
+  /mouth                              (z=7)
+  /eyes                               Drawn in real colour (z=8)
+  /twinkle                            Eye shine sparkle — or transparent 'none' (z=9)
+  /brows                              (z=10)
+  /accessories                        Glasses/earrings — drawn in real colour (z=11)
+  /hair_front                         Fringe/bangs — renders over face (z=12)
   /frames
 
 /scripts
@@ -117,16 +117,17 @@ CLAUDE.md
 ```
 z=0   Card frame (full-bleed background + decorative border — below all character layers)
 z=1   Hair back (bulk, length, shape of hair — sits behind the head)
-z=2   Face shape (face oval — drawn in white/near-white, tinted to skin tone)
-z=3   Body + outfit (torso, arms, clothing — body silhouette then clothing overlay)
-z=4   Facial hair (beard, stubble, moustache — or transparent 'none')
-z=5   Nose
-z=6   Mouth
-z=7   Eyes (drawn in real colour — separate assets per eye colour)
-z=8   Twinkle (eye shine — decorative sparkle overlay on eyes — or transparent 'none')
-z=9   Eyebrows
-z=10  Accessories (glasses, earrings, hat — drawn in real colour)
-z=11  Hair front / bangs (fringe, face-framing pieces — or transparent 'none')
+z=2   Body (torso/arms silhouette — tinted to skin tone)
+z=3   Face shape (face oval — drawn in white/near-white, tinted to skin tone)
+z=4   Outfit (clothing overlay — tinted to outfit colour)
+z=5   Facial hair (beard, stubble, moustache — or transparent 'none')
+z=6   Nose
+z=7   Mouth
+z=8   Eyes (drawn in real colour — separate assets per eye colour)
+z=9   Twinkle (eye shine — decorative sparkle overlay on eyes — or transparent 'none')
+z=10  Eyebrows
+z=11  Accessories (glasses, earrings, hat — drawn in real colour)
+z=12  Hair front / bangs (fringe, face-framing pieces — or transparent 'none')
 ```
 
 The hair split is the critical architectural decision: hair_back sits behind the face so the face oval is always visible, while hair_front (fringe/bangs) sits on top to frame the face naturally. hair_front_none.png (transparent) is required so guests with no fringe still render correctly.
@@ -142,6 +143,7 @@ The colour picker value becomes the exact colour of the filled areas, including 
 |---|---|---|
 | Hair back fills | White (#FFFFFF) | Overlay tint → colour picker value exactly |
 | Hair front fills | White (#FFFFFF) | Same tint as hair_back — one colour picker covers both |
+| Body silhouette fill | White/near-white | Overlay tint → same skin tone as face (one picker covers both) |
 | Skin / face fill | White/near-white | Overlay tint → exact skin tone from picker |
 | Clothing fills | White/near-white | Operator picks colour from guest photo |
 | Eyes | Real colour (brown, blue, green etc) | Swapped as separate assets, not tinted |
@@ -401,9 +403,9 @@ Phase 2 is functional with 5 mock guests. Phase 4 upload → Claude Vision → c
 - All assets drawn by hand in Procreate, exported as individual PNGs
 - Tinting via colour overlay — assets drawn in white/near-white, colour picker value becomes exact fill colour (full range including pale tones)
 - sRGB colour mode throughout — never CMYK
-- Hair split into two layers: `hair_back` (z=1, behind face) and `hair_front` (z=11, over face for fringe/bangs). Do not collapse back to a single hair layer — the split is what makes the face oval always visible regardless of hair style.
+- Hair split into two layers: `hair_back` (z=1, behind face) and `hair_front` (z=12, over face for fringe/bangs). Do not collapse back to a single hair layer — the split is what makes the face oval always visible regardless of hair style.
 - `hair_front_none.png` (fully transparent) must always exist — it is the default for guests with no fringe
-- Body and outfit are separate recipe keys and separate asset folders — body is the silhouette/pose, outfit is the clothing overlay on top of it. Both use the outfit colour tint.
+- Body and outfit are separate recipe keys, separate asset folders, and separate tint colours — body (z=2) uses the skin tone picker, outfit (z=4) uses the outfit colour picker. Body sits behind the face; outfit sits in front of it.
 - Compositor state managed via `useReducer` (not external state library). History stack capped at 10 snapshots.
 - Guest progress persisted to `localStorage` keyed by guest ID, so the illustrator doesn't lose work on page refresh. Key: `mishph_compositor_v1`.
 - Vite dev proxy forwards `/api/*` and `/assets/*` to Express on port 3001. Frontend uses relative URLs — never hardcode `localhost:3001`.
