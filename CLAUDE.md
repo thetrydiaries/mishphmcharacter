@@ -43,7 +43,7 @@ There is no public sign-up, no customer login, no payment processing.
 | Backend API | Node.js + Express (runs on localhost:3001) |
 | Database | Supabase (PostgreSQL) |
 | File storage | Supabase Storage |
-| AI photo analysis | Google Vision API (Phase 4) |
+| AI photo analysis | Claude Vision API (Anthropic) |
 | Print export | node-canvas or Puppeteer (Phase 5) |
 | Auth | Simple single-password or Supabase Auth |
 | Hosting | Vercel (frontend) + Railway or Render (backend) |
@@ -252,9 +252,14 @@ This means:
 - IMPORTANT: HEIC is iPhone's default format. Backend must convert HEIC → JPEG before AI analysis.
 
 ### AI photo analysis + asset suggestion
-- Uses Google Vision API to detect: skin tone, hair colour, hair length, hair style,
-  glasses presence, facial hair presence, gender presentation, outfit formality
-- Feature → asset mapping stored in a JSON config file (not hardcoded)
+- Uses Claude Vision API (claude-opus-4-5) to detect: skin tone, hair colour, hair
+  length, hair style, face shape, eye shape, eye colour, brow shape, nose shape,
+  mouth shape, glasses presence, facial hair style, outfit formality
+- Claude Vision can detect nearly every layer — far fewer manual flags than Google Vision
+- Feature → asset mapping stored in `server/assetMapping.json` (not hardcoded)
+- To add new assets or change mappings: edit `assetMapping.json` — no code changes needed
+- Categories that always default (body type, frame, twinkle) are intentional — not flagged
+- Categories where Claude's value has no matching rule are flagged yellow in the compositor
 - Confidence score shown — low-confidence suggestions flagged for priority review
 - Original photo always visible alongside the illustration
 - THE AI DOES NOT GENERATE ILLUSTRATIONS — it only suggests which assets to use
@@ -326,19 +331,41 @@ This means:
 | Phase 1 — Environment setup | Project scaffold, React app running, Supabase connected, GitHub set up | Complete |
 | Phase 2 — Compositor | Konva.js canvas, asset panel, tinting, undo/redo, card preview | Complete |
 | Phase 3 — Orders + guests | Wedding order dashboard, guest list, status tracking, notes | Not started |
-| Phase 4 — Upload + AI | Bulk upload, HEIC conversion, Vision API, asset matching | Not started |
+| Phase 4 — Upload + AI | Bulk upload, HEIC conversion, Claude Vision API, asset matching | In progress |
 | Phase 5 — Export | 300dpi PNG export, PDF layout, batch ZIP download | Not started |
 | Phase 6 — Test wedding | Real 50-guest order, measure success metrics, fix blockers | Not started |
 
 ## Current status
 
-Phase 1 and Phase 2 complete.
+Phases 1, 2, and 4 (upload + AI) are complete or in progress.
 
 - Backend: `cd server && npm start` → localhost:3001
 - Frontend: `cd client && npm run dev` → localhost:5174
+- Upload at: http://localhost:5174/upload
 - Compositor at: http://localhost:5174/compositor
 
-Phase 2 is functional with 5 mock guests and placeholder PNG assets. It is wired to mock data only — no Supabase reads or writes yet. Next step is Phase 3 (orders + guest management), which will replace `mockGuests.js` with real DB queries.
+Phase 2 is functional with 5 mock guests. Phase 4 upload → Claude Vision → compositor flow is wired and working. Phase 3 (orders + guest management) replaces `mockGuests.js` with real DB queries — not yet started.
+
+### API endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/assets` | Returns all asset PNGs grouped by category folder |
+| POST | `/api/analyse` | Accepts a photo (multipart), converts HEIC→JPEG, calls Claude Vision, returns `{ recipe, flags, detectedFeatures }` |
+| GET | `/health` | Server liveness check |
+| GET | `/health/db` | Supabase connectivity check |
+
+### Environment variables (server/.env)
+
+| Variable | Required | Description |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Yes | Claude Vision API key — add this before running Phase 4 |
+| `SUPABASE_URL` | Phase 3+ | Supabase project URL |
+| `SUPABASE_ANON_KEY` | Phase 3+ | Supabase anon key |
+
+### assetMapping.json
+
+`server/assetMapping.json` maps Claude Vision feature values to asset filenames. Rules per category are evaluated top-to-bottom; first full match wins. To add assets as the library grows: add a new rule with the conditions and asset filename — no code changes needed. If `rules` is empty, the category always uses its default and is never flagged.
 
 ---
 

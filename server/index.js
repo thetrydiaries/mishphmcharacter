@@ -4,6 +4,7 @@ const cors = require('cors')
 const path = require('path')
 const fs = require('fs')
 const supabase = require('./supabase')
+const analyseRoute = require('./routes/analyse')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -14,6 +15,9 @@ app.use(express.json())
 // Serve hand-drawn PNG assets statically
 const ASSETS_ROOT = path.join(__dirname, '..', 'assets')
 app.use('/assets', express.static(ASSETS_ROOT))
+
+// POST /api/analyse — upload a photo, run Claude Vision, return recipe + flags
+app.use('/api/analyse', analyseRoute)
 
 // GET /api/assets — returns all assets grouped by category
 app.get('/api/assets', (req, res) => {

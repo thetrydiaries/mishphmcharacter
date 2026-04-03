@@ -115,6 +115,19 @@ function reducer(state, action) {
       }
     }
 
+    case 'LOAD_FROM_ANALYSIS': {
+      // Replace the current guest's recipe with the AI-matched result.
+      // Clears undo/redo history — the loaded recipe is the new baseline.
+      return {
+        ...state,
+        guests: guests.map((g, i) =>
+          i === currentIndex ? { ...g, recipe: action.recipe } : g
+        ),
+        history: [],
+        future: [],
+      }
+    }
+
     case 'NAVIGATE': {
       const next = Math.max(0, Math.min(guests.length - 1, currentIndex + action.delta))
       if (next === currentIndex) return state
@@ -177,6 +190,7 @@ export function useCompositor() {
 
     swapAsset: (category, assetName) => dispatch({ type: 'SWAP_ASSET', category, assetName }),
     setColour: (colourType, hex) => dispatch({ type: 'SET_COLOUR', colourType, hex }),
+    loadFromAnalysis: (recipe) => dispatch({ type: 'LOAD_FROM_ANALYSIS', recipe }),
     approve,
     flagRevision,
     reset: () => dispatch({ type: 'RESET' }),

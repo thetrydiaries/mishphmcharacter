@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "_comment": "Rules evaluate top-to-bottom per category; first full match wins. If no rule matches and the rules array is non-empty, 'default' is used and the layer is added to the flags list (yellow in AssetPanel). Empty rules = intentional default, never flagged.",
+  "categories": {
+    "hair_back": {
+      "default": "hair_back_short",
+      "rules": [
+        { "conditions": { "hairStyle": "bun" },                                   "asset": "hair_back_buns" },
+        { "conditions": { "hairStyle": "bob" },                                   "asset": "hair_back_bob" },
+        { "conditions": { "hairLength": "long",   "hairStyle": "curly" },         "asset": "hair_back_long" },
+        { "conditions": { "hairLength": "long",   "hairStyle": "wavy" },          "asset": "hair_back_long" },
+        { "conditions": { "hairLength": "long" },                                 "asset": "hair_back_straight_long" },
+        { "conditions": { "hairLength": "medium", "hairStyle": "wavy" },          "asset": "hair_back_wavy_shoulder" },
+        { "conditions": { "hairLength": "medium" },                               "asset": "hair_back_wavy_shoulder" },
+        { "conditions": { "hairLength": "short",  "hairStyle": "curly" },         "asset": "hair_back_curly_short" },
+        { "conditions": { "hairLength": "short" },                                "asset": "hair_back_short" }
+      ]
+    },
+    "hair_front": {
+      "default": "hair_front_none",
+      "rules": [
+        { "conditions": { "hairStyle": "slick" },                                 "asset": "hair_front_slickback" },
+        { "conditions": { "hasBangs": true,  "hairStyle": "curly" },              "asset": "hair_front_messy" },
+        { "conditions": { "hasBangs": true },                                     "asset": "hair_front_curtainbangs" },
+        { "conditions": { "hasBangs": false },                                    "asset": "hair_front_none" }
+      ]
+    },
+    "face": {
+      "default": "face_oval",
+      "rules": [
+        { "conditions": { "faceShape": "oval" },    "asset": "face_oval" },
+        { "conditions": { "faceShape": "round" },   "asset": "face_round" },
+        { "conditions": { "faceShape": "square" },  "asset": "face_square" },
+        { "conditions": { "faceShape": "heart" },   "asset": "face_heart" },
+        { "conditions": { "faceShape": "oblong" },  "asset": "face_oblong" },
+        { "conditions": { "faceShape": "diamond" }, "asset": "face_diamond" }
+      ]
+    },
+    "body": {
+      "_comment": "Body type not detectable from a photo — intentional default, never flagged.",
+      "default": "body_base",
+      "rules": []
+    },
+    "outfit": {
+      "default": "outfit_casual",
+      "rules": [
+        { "conditions": { "outfitFormality": "formal" },       "asset": "outfit_blazer" },
+        { "conditions": { "outfitFormality": "smart-casual" }, "asset": "outfit_buttonup" },
+        { "conditions": { "outfitFormality": "casual" },       "asset": "outfit_casual" }
+      ]
+    },
+    "facialhair": {
+      "default": "facialhair_none",
+      "rules": [
+        { "conditions": { "facialHairStyle": "none" },        "asset": "facialhair_none" },
+        { "conditions": { "facialHairStyle": "stubble" },     "asset": "facialhair_stubble" },
+        { "conditions": { "facialHairStyle": "moustache" },   "asset": "facialhair_stubble" },
+        { "conditions": { "facialHairStyle": "short beard" }, "asset": "facialhair_stubble" },
+        { "conditions": { "facialHairStyle": "full beard" },  "asset": "facialhair_stubble" },
+        { "conditions": { "facialHairStyle": "goatee" },      "asset": "facialhair_stubble" }
+      ]
+    },
+    "nose": {
+      "default": "nose_button",
+      "rules": [
+        { "conditions": { "noseShape": "button" },   "asset": "nose_button" },
+        { "conditions": { "noseShape": "straight" }, "asset": "nose_straight" },
+        { "conditions": { "noseShape": "upturned" }, "asset": "nose_upturn" },
+        { "conditions": { "noseShape": "wide" },     "asset": "nose_button" },
+        { "conditions": { "noseShape": "curved" },   "asset": "nose_straight" }
+      ]
+    },
+    "mouth": {
+      "default": "mouth_neutral",
+      "rules": [
+        { "conditions": { "mouthShape": "neutral" }, "asset": "mouth_neutral" },
+        { "conditions": { "mouthShape": "full" },    "asset": "mouth_closedsmile" },
+        { "conditions": { "mouthShape": "wide" },    "asset": "mouth_grin" },
+        { "conditions": { "mouthShape": "thin" },    "asset": "mouth_neutral" }
+      ]
+    },
+    "eyes": {
+      "default": "eyes_almond_brown",
+      "rules": [
+        { "conditions": { "eyeShape": "almond",  "eyeColour": "black" },  "asset": "eyes_almond_black" },
+        { "conditions": { "eyeShape": "almond",  "eyeColour": "brown" },  "asset": "eyes_almond_brown" },
+        { "conditions": { "eyeShape": "almond",  "eyeColour": "blue" },   "asset": "eyes_almond_blue" },
+        { "conditions": { "eyeShape": "almond",  "eyeColour": "green" },  "asset": "eyes_almond_brown" },
+        { "conditions": { "eyeShape": "almond",  "eyeColour": "hazel" },  "asset": "eyes_almond_brown" },
+        { "conditions": { "eyeShape": "round",   "eyeColour": "black" },  "asset": "eyes_round_black" },
+        { "conditions": { "eyeShape": "round",   "eyeColour": "brown" },  "asset": "eyes_round_brown" },
+        { "conditions": { "eyeShape": "round",   "eyeColour": "blue" },   "asset": "eyes_round_blue" },
+        { "conditions": { "eyeShape": "round",   "eyeColour": "green" },  "asset": "eyes_round_brown" },
+        { "conditions": { "eyeShape": "round",   "eyeColour": "hazel" },  "asset": "eyes_round_brown" },
+        { "conditions": { "eyeShape": "monolid", "eyeColour": "black" },  "asset": "eyes_monolid_black" },
+        { "conditions": { "eyeShape": "monolid", "eyeColour": "brown" },  "asset": "eyes_monolid_brown" },
+        { "conditions": { "eyeShape": "monolid", "eyeColour": "blue" },   "asset": "eyes_monolid_blue" },
+        { "conditions": { "eyeShape": "monolid", "eyeColour": "green" },  "asset": "eyes_monolid_brown" },
+        { "conditions": { "eyeShape": "monolid", "eyeColour": "hazel" },  "asset": "eyes_monolid_brown" },
+        { "conditions": { "eyeShape": "hooded",  "eyeColour": "black" },  "asset": "eyes_hooded_black" },
+        { "conditions": { "eyeShape": "hooded",  "eyeColour": "brown" },  "asset": "eyes_hooded_brown" },
+        { "conditions": { "eyeShape": "hooded",  "eyeColour": "blue" },   "asset": "eyes_hooded_blue" },
+        { "conditions": { "eyeShape": "hooded",  "eyeColour": "green" },  "asset": "eyes_hooded_brown" },
+        { "conditions": { "eyeShape": "hooded",  "eyeColour": "hazel" },  "asset": "eyes_hooded_brown" },
+        { "conditions": { "eyeColour": "black" }, "asset": "eyes_almond_black" },
+        { "conditions": { "eyeColour": "brown" }, "asset": "eyes_almond_brown" },
+        { "conditions": { "eyeColour": "blue" },  "asset": "eyes_almond_blue" }
+      ]
+    },
+    "brows": {
+      "default": "brow_natural",
+      "rules": [
+        { "conditions": { "browShape": "natural" },      "asset": "brow_natural" },
+        { "conditions": { "browShape": "arched" },       "asset": "brow_arched" },
+        { "conditions": { "browShape": "straight" },     "asset": "brows_thick" },
+        { "conditions": { "browShape": "bushy" },        "asset": "brows_thick" },
+        { "conditions": { "browShape": "barely-there" }, "asset": "brows_thin" }
+      ]
+    },
+    "twinkle": {
+      "_comment": "Always none by default — intentional, never flagged.",
+      "default": "twinkle_none",
+      "rules": []
+    },
+    "accessory": {
+      "default": "accessories_none",
+      "rules": [
+        { "conditions": { "hasGlasses": true },  "asset": "accessories_glasses" },
+        { "conditions": { "hasGlasses": false }, "asset": "accessories_none" }
+      ]
+    },
+    "frame": {
+      "_comment": "Frame is set once per wedding, not per guest — intentional default, never flagged.",
+      "default": "frame_botanical",
+      "rules": []
+    }
+  }
+}

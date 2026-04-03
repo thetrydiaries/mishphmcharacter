@@ -3,8 +3,8 @@ import { useState } from 'react'
 const CATEGORY_META = [
   { folder: 'frames',      label: 'Card Frame',     recipeKey: 'frame' },
   { folder: 'hair_back',   label: 'Hair (back)',    recipeKey: 'hair_back' },
-  { folder: 'face',        label: 'Face Shape',     recipeKey: 'face' },
   { folder: 'body',        label: 'Body',           recipeKey: 'body' },
+  { folder: 'face',        label: 'Face Shape',     recipeKey: 'face' },
   { folder: 'outfit',      label: 'Outfit',         recipeKey: 'outfit' },
   { folder: 'facialhair',  label: 'Facial Hair',    recipeKey: 'facialhair' },
   { folder: 'nose',        label: 'Nose',           recipeKey: 'nose' },
@@ -12,8 +12,8 @@ const CATEGORY_META = [
   { folder: 'eyes',        label: 'Eyes',           recipeKey: 'eyes' },
   { folder: 'twinkle',     label: 'Twinkle',        recipeKey: 'twinkle' },
   { folder: 'brows',       label: 'Eyebrows',       recipeKey: 'brows' },
-  { folder: 'hair_front',  label: 'Bangs / front',  recipeKey: 'hair_front' },
   { folder: 'accessories', label: 'Accessories',    recipeKey: 'accessory' },
+  { folder: 'hair_front',  label: 'Bangs / front',  recipeKey: 'hair_front' },
 ]
 
 const COLOUR_PICKERS = [
@@ -22,7 +22,7 @@ const COLOUR_PICKERS = [
   { key: 'outfit', label: 'Outfit colour' },
 ]
 
-export default function AssetPanel({ recipe, availableAssets, onSwapAsset, onSetColour }) {
+export default function AssetPanel({ recipe, availableAssets, onSwapAsset, onSetColour, flaggedCategories = [] }) {
   const [openCategory, setOpenCategory] = useState('hair')
 
   function toggleCategory(folder) {
@@ -37,6 +37,8 @@ export default function AssetPanel({ recipe, availableAssets, onSwapAsset, onSet
         const activeAsset = recipe.assets[recipeKey]
         const isOpen = openCategory === folder
 
+        const isFlagged = flaggedCategories.includes(recipeKey)
+
         return (
           <div key={folder} style={styles.section}>
             <button
@@ -44,6 +46,9 @@ export default function AssetPanel({ recipe, availableAssets, onSwapAsset, onSet
               onClick={() => toggleCategory(folder)}
             >
               <span style={styles.categoryLabel}>{label}</span>
+              {isFlagged && (
+                <span style={styles.reviewDot} title="AI suggestion — please review" />
+              )}
               <span style={styles.chevron}>{isOpen ? '▲' : '▼'}</span>
               {activeAsset && (
                 <span style={styles.activePill}>
@@ -153,6 +158,14 @@ const styles = {
     fontWeight: 500,
     color: 'var(--text)',
     flex: 1,
+  },
+  reviewDot: {
+    width: 7,
+    height: 7,
+    borderRadius: '50%',
+    background: '#E6B800',
+    flexShrink: 0,
+    display: 'inline-block',
   },
   chevron: {
     fontSize: 9,

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useCompositor } from '../hooks/useCompositor'
 import CompositorCanvas, { CANVAS_W, CANVAS_H } from '../components/compositor/CompositorCanvas'
 import AssetPanel from '../components/compositor/AssetPanel'
@@ -6,6 +7,7 @@ import TopBar from '../components/compositor/TopBar'
 import BottomBar from '../components/compositor/BottomBar'
 
 export default function Compositor() {
+  const location   = useLocation()
   const compositor = useCompositor()
   const {
     currentGuest,
@@ -15,6 +17,7 @@ export default function Compositor() {
     canRedo,
     swapAsset,
     setColour,
+    loadFromAnalysis,
     approve,
     flagRevision,
     reset,
@@ -23,6 +26,17 @@ export default function Compositor() {
     prevGuest,
     nextGuest,
   } = compositor
+
+  // If navigated from /upload, load the AI-matched recipe into the current guest slot
+  useEffect(() => {
+    if (location.state?.recipe) {
+      loadFromAnalysis(location.state.recipe)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Flags and photo URL survive only for this compositor session (from router state)
+  const flags    = location.state?.flags    ?? []
+  const photoURL = location.state?.photoURL ?? currentGuest?.photo ?? null
 
   const [availableAssets, setAvailableAssets] = useState(null)
   const [assetsError, setAssetsError] = useState(null)
@@ -78,9 +92,9 @@ export default function Compositor() {
         <div style={styles.canvasCol}>
           {/* Guest photo */}
           <div style={styles.photoPane}>
-            {currentGuest.photo ? (
+            {photoURL ? (
               <img
-                src={currentGuest.photo}
+                src={photoURL}
                 alt={`Photo of ${currentGuest.name}`}
                 style={styles.photo}
               />
@@ -125,6 +139,7 @@ export default function Compositor() {
           availableAssets={availableAssets ?? {}}
           onSwapAsset={swapAsset}
           onSetColour={setColour}
+          flaggedCategories={flags}
         />
       </div>
 

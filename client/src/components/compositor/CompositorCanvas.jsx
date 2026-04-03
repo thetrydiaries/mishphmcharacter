@@ -10,17 +10,17 @@ export const CANVAS_H = 880
 const LAYER_STACK = [
   { key: 'frame',      folder: 'frames',      tintKey: null },       // z=0  card frame background
   { key: 'hair_back',  folder: 'hair_back',   tintKey: 'hair' },     // z=1  hair bulk/length (behind head)
-  { key: 'face',       folder: 'face',        tintKey: 'skin' },     // z=2  face shape
-  { key: 'body',       folder: 'body',        tintKey: 'outfit' },   // z=3a body silhouette
-  { key: 'outfit',     folder: 'outfit',      tintKey: 'outfit' },   // z=3b clothing
-  { key: 'facialhair', folder: 'facialhair',  tintKey: null },       // z=4  beard/stubble/none
-  { key: 'nose',       folder: 'nose',        tintKey: null },       // z=5
-  { key: 'mouth',      folder: 'mouth',       tintKey: null },       // z=6
-  { key: 'eyes',       folder: 'eyes',        tintKey: null },       // z=7  drawn in real colour
-  { key: 'twinkle',    folder: 'twinkle',     tintKey: null },       // z=8  eye shine sparkle
-  { key: 'brows',      folder: 'brows',       tintKey: null },       // z=9
-  { key: 'accessory',  folder: 'accessories', tintKey: null },       // z=10 glasses/earrings/hat
-  { key: 'hair_front', folder: 'hair_front',  tintKey: 'hair' },     // z=11 fringe/bangs (over face)
+  { key: 'body',       folder: 'body',        tintKey: 'skin' },     // z=2  body silhouette (skin tone)
+  { key: 'face',       folder: 'face',        tintKey: 'skin' },     // z=3  face shape (skin tone)
+  { key: 'outfit',     folder: 'outfit',      tintKey: 'outfit' },   // z=4  clothing overlay
+  { key: 'facialhair', folder: 'facialhair',  tintKey: null },       // z=5  beard/stubble/none
+  { key: 'nose',       folder: 'nose',        tintKey: null },       // z=6
+  { key: 'mouth',      folder: 'mouth',       tintKey: null },       // z=7
+  { key: 'eyes',       folder: 'eyes',        tintKey: null },       // z=8  drawn in real colour
+  { key: 'twinkle',    folder: 'twinkle',     tintKey: null },       // z=9  eye shine sparkle
+  { key: 'brows',      folder: 'brows',       tintKey: null },       // z=10
+  { key: 'accessory',  folder: 'accessories', tintKey: null },       // z=11 glasses/earrings/hat
+  { key: 'hair_front', folder: 'hair_front',  tintKey: 'hair' },     // z=12 fringe/bangs (over face)
 ]
 
 // ─── Colour overlay tint ──────────────────────────────────────────────────────
