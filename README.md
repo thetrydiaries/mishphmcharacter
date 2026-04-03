@@ -38,7 +38,7 @@ cd client
 npm install
 npm run dev
 ```
-Runs on http://localhost:5173
+Runs on http://localhost:5174
 
 ### Backend
 ```bash
