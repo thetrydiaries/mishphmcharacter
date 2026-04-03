@@ -38,7 +38,7 @@ There is no public sign-up, no customer login, no payment processing.
 
 | Layer | Technology |
 |---|---|
-| Frontend | React + Vite (runs on localhost:5173) |
+| Frontend | React + Vite (runs on localhost:5174) |
 | Canvas / compositor | Konva.js |
 | Backend API | Node.js + Express (runs on localhost:3001) |
 | Database | Supabase (PostgreSQL) |
@@ -56,21 +56,49 @@ cached so the illustrator can work without a constant connection.
 ## Project folder structure
 
 ```
-/client          React frontend
-/server          Express backend
-/assets          Hand-drawn PNG asset files, subfolders by category:
-  /assets/hair
-  /assets/face
-  /assets/eyes
-  /assets/brows
-  /assets/nose
-  /assets/mouth
-  /assets/facialhair
-  /assets/body
-  /assets/outfit
-  /assets/accessories
-  /assets/frames
-CLAUDE.md        This file
+/client
+  index.html                          Google Fonts loaded here (Playfair Display, DM Sans)
+  vite.config.js                      Vite proxy: /api and /assets → localhost:3001
+  src/
+    main.jsx
+    App.jsx                           Routes: / and /compositor
+    index.css                         Design tokens (CSS vars), base styles
+    pages/
+      Home.jsx                        Landing page with link to compositor
+      Compositor.jsx                  Main compositor page — layout wrapper
+    components/compositor/
+      CompositorCanvas.jsx            Konva.js stage, 12-layer stack, multiply tint
+      AssetPanel.jsx                  Collapsible category panels + colour pickers
+      TopBar.jsx                      Guest name, status badge, Approve/Revision/Reset/Undo/Redo
+      BottomBar.jsx                   Prev/Next navigation + guest counter
+    hooks/
+      useCompositor.js                useReducer state: undo/redo, asset swap, colour, nav, localStorage
+    data/
+      mockGuests.js                   5 hardcoded test guests (used until Phase 3 wires up Supabase)
+
+/server
+  index.js                            Express API + static /assets serving
+  supabase.js                         Supabase client
+
+/assets                               Hand-drawn PNG assets (630×880, RGBA)
+  /hair_back                          Hair bulk/length/shape — renders behind face (z=1)
+  /hair_front                         Fringe/bangs — renders over face (z=9)
+  /body                               Body silhouette
+  /outfit                             Clothing overlay
+  /face
+  /eyes
+  /brows
+  /nose
+  /mouth
+  /facialhair
+  /accessories
+  /frames
+
+/scripts
+  generate-placeholders.js            Node.js script (zero deps) — generates 630×880 test PNGs
+                                      Run: node scripts/generate-placeholders.js
+
+CLAUDE.md
 ```
 
 ---
@@ -86,7 +114,8 @@ CLAUDE.md        This file
 
 ### Layer order (bottom to top, z=1 is lowest)
 ```
-z=1   Card frame (full-bleed background + decorative border)
+z=0   Card frame (full-bleed background + decorative border — below all character layers)
+z=1   Hair back (bulk, length, shape of hair — sits behind the face)
 z=2   Body + outfit (torso, arms, clothing)
 z=3   Face shape (face oval — drawn in neutral grey, tinted to skin tone)
 z=4   Facial hair (beard, stubble, moustache — or transparent 'none')
@@ -94,9 +123,11 @@ z=5   Nose
 z=6   Mouth
 z=7   Eyes (drawn in real colour — separate assets per eye colour)
 z=8   Eyebrows
-z=9   Hair (drawn in black, tinted at runtime to any hair colour)
+z=9   Hair front / bangs (fringe, face-framing pieces — or transparent 'none')
 z=10  Accessories (glasses, earrings, hat — drawn in real colour)
 ```
+
+The hair split is the critical architectural decision: hair_back sits behind the face so the face oval is always visible, while hair_front (fringe/bangs) sits on top to frame the face naturally. hair_front_none.png (transparent) is required so guests with no fringe still render correctly.
 
 Name + wedding date text is overlaid at export time. It is NOT a PNG asset.
 
@@ -106,7 +137,8 @@ This means one drawing covers infinite colour variations — no redraws needed.
 
 | What | How to draw | Why |
 |---|---|---|
-| Hair fills | Pure black (#000000) | Multiply × tint colour = tint colour exactly |
+| Hair back fills | Pure black (#000000) | Multiply × tint colour = tint colour exactly |
+| Hair front fills | Pure black (#000000) | Same tint as hair_back — one colour picker covers both |
 | Skin / face fill | Mid-grey (#888888) | Allows tint to retain luminosity |
 | Clothing fills | Mid-grey (#777777) | Operator picks colour from guest photo |
 | Eyes | Real colour (brown, blue, green etc) | Swapped as separate assets, not tinted |
@@ -118,13 +150,16 @@ This means one drawing covers infinite colour variations — no redraws needed.
 Format: `category_variant.png` — lowercase, underscores, no spaces, no capitals.
 
 Examples:
-- `hair_curly_shoulder.png`
-- `hair_straight_long.png`
-- `hair_wavy_earLength.png` (camelCase for two-word variants)
+- `hair_back_curly_shoulder.png`
+- `hair_back_straight_long.png`
+- `hair_back_wavy_earLength.png` (camelCase for two-word variants)
+- `hair_front_fringe.png`
+- `hair_front_curtains.png`
+- `hair_front_none.png` (transparent PNG — **required**, for guests with no fringe)
 - `eyes_almond.png`
 - `face_oval.png`
-- `outfit_top_blazer.png`
-- `outfit_top_offShoulder.png`
+- `outfit_blazer.png`
+- `outfit_offShoulder.png`
 - `accessory_glasses_round.png`
 - `facialhair_none.png` (transparent PNG — required)
 - `accessory_glasses_none.png` (transparent PNG — required)
@@ -141,7 +176,8 @@ Colour variants handled by tinting do NOT need separate files.
 | Eyebrows | 6 | Thin arched, thick straight, natural, bushy, barely-there, strong |
 | Nose | 5 | Button, straight, wide, curved, upturned |
 | Mouth | 6 | Full lips, thin lips, wide smile, closed smile, neutral, open grin |
-| Hair (style × length combos) | ~25–30 | Straight/wavy/curly/coily/bun/ponytail/braid/updo/half-up × short/ear/shoulder/mid-back/long |
+| Hair back (style × length combos) | ~25–30 | Straight/wavy/curly/coily/bun/ponytail/braid/updo/half-up × short/ear/shoulder/mid-back/long |
+| Hair front / bangs | ~8–10 | None (transparent, required), blunt fringe, curtain fringe, wispy fringe, side-swept, micro fringe, face-framing pieces |
 | Facial hair | 6 | None, stubble, moustache, short beard, full beard, goatee |
 | Body / frame | 3 | Slim, average, broad (silhouette only) |
 | Outfit tops | 8 | Suit jacket, blazer, dress shirt, t-shirt, blouse, turtleneck, off-shoulder, formal dress top |
@@ -149,7 +185,7 @@ Colour variants handled by tinting do NOT need separate files.
 | Glasses | 4 | None, round frames, rectangular frames, sunglasses |
 | Card frames | 4 | Botanical, geometric, minimal, vintage |
 
-Total must-have: ~76 base assets. Colour variants handled by tinting (no extra files).
+Total must-have: ~84–86 base assets. Colour variants handled by tinting (no extra files).
 
 ---
 
@@ -161,25 +197,28 @@ Each illustration is stored in the database as a JSON recipe — NOT as a render
 {
   "guest_id": "abc123",
   "assets": {
-    "frame": "frame_botanical",
-    "body": "body_average",
-    "face": "face_oval",
+    "frame":      "frame_botanical",
+    "hair_back":  "hair_back_curly_shoulder",
+    "body":       "body_average",
+    "outfit":     "outfit_blazer",
+    "face":       "face_oval",
     "facialhair": "facialhair_none",
-    "nose": "nose_button",
-    "mouth": "mouth_closedSmile",
-    "eyes": "eyes_almond",
-    "brows": "brow_natural",
-    "hair": "hair_curly_shoulder",
-    "accessory_glasses": "accessory_glasses_none",
-    "accessory_earring": "accessory_earring_hoops"
+    "nose":       "nose_button",
+    "mouth":      "mouth_closedsmile",
+    "eyes":       "eyes_almond",
+    "brows":      "brow_natural",
+    "hair_front": "hair_front_none",
+    "accessory":  "accessory_glasses_none"
   },
   "colours": {
-    "hair": "#3D1F0A",
-    "skin": "#C08060",
+    "hair":   "#3D1F0A",
+    "skin":   "#C08060",
     "outfit": "#2D3561"
   }
 }
 ```
+
+Note: `accessory` is currently a single slot (one asset from the accessories folder). Multi-accessory support (separate glasses + earrings keys) is planned for a future phase.
 
 This means:
 - No rendered image stored in DB — only the recipe
@@ -277,15 +316,22 @@ This means:
 
 | Phase | Scope | Status |
 |---|---|---|
-| Phase 1 — Environment setup | Project scaffold, React app running, Supabase connected, GitHub set up | In progress |
-| Phase 2 — Compositor | Konva.js canvas, asset panel, tinting, undo/redo, card preview | Not started |
+| Phase 1 — Environment setup | Project scaffold, React app running, Supabase connected, GitHub set up | Complete |
+| Phase 2 — Compositor | Konva.js canvas, asset panel, tinting, undo/redo, card preview | Complete |
 | Phase 3 — Orders + guests | Wedding order dashboard, guest list, status tracking, notes | Not started |
 | Phase 4 — Upload + AI | Bulk upload, HEIC conversion, Vision API, asset matching | Not started |
 | Phase 5 — Export | 300dpi PNG export, PDF layout, batch ZIP download | Not started |
 | Phase 6 — Test wedding | Real 50-guest order, measure success metrics, fix blockers | Not started |
 
 ## Current status
-Phase 1 complete. Backend running on port 3001 with npm start. Frontend running on port 5174 with npm run dev.
+
+Phase 1 and Phase 2 complete.
+
+- Backend: `cd server && npm start` → localhost:3001
+- Frontend: `cd client && npm run dev` → localhost:5174
+- Compositor at: http://localhost:5174/compositor
+
+Phase 2 is functional with 5 mock guests and placeholder PNG assets. It is wired to mock data only — no Supabase reads or writes yet. Next step is Phase 3 (orders + guest management), which will replace `mockGuests.js` with real DB queries.
 
 ---
 
@@ -321,6 +367,13 @@ Phase 1 complete. Backend running on port 3001 with npm start. Frontend running 
 - All assets drawn by hand in Procreate, exported as individual PNGs
 - Tinting via multiply blend mode — hair in black, skin/outfit in mid-grey
 - sRGB colour mode throughout — never CMYK
+- Hair split into two layers: `hair_back` (z=1, behind face) and `hair_front` (z=9, over face for fringe/bangs). Do not collapse back to a single hair layer — the split is what makes the face oval always visible regardless of hair style.
+- `hair_front_none.png` (fully transparent) must always exist — it is the default for guests with no fringe
+- Body and outfit are separate recipe keys and separate asset folders — body is the silhouette/pose, outfit is the clothing overlay on top of it. Both use the outfit colour tint.
+- Compositor state managed via `useReducer` (not external state library). History stack capped at 10 snapshots.
+- Guest progress persisted to `localStorage` keyed by guest ID, so the illustrator doesn't lose work on page refresh. Key: `mishph_compositor_v1`.
+- Vite dev proxy forwards `/api/*` and `/assets/*` to Express on port 3001. Frontend uses relative URLs — never hardcode `localhost:3001`.
+- The `accessory` recipe key is a single slot for Phase 2. Multi-accessory support (simultaneous glasses + earrings) deferred to a later phase.
 
 ---
 
@@ -332,3 +385,5 @@ Phase 1 complete. Backend running on port 3001 with npm start. Frontend running 
 - Use CMYK colour mode anywhere in the pipeline
 - Move or resize assets at compositor runtime (shared canvas — everything stacks at same position)
 - Use semi-transparent strokes in assets (looks patchy when tinted)
+- Collapse `hair_back` and `hair_front` back into a single `hair` layer — the split is intentional and architectural
+- Hardcode `localhost:3001` in the frontend — use relative URLs, the Vite proxy handles routing
