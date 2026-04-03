@@ -67,7 +67,7 @@ cached so the illustrator can work without a constant connection.
       Home.jsx                        Landing page with link to compositor
       Compositor.jsx                  Main compositor page — layout wrapper
     components/compositor/
-      CompositorCanvas.jsx            Konva.js stage, 12-layer stack, multiply tint
+      CompositorCanvas.jsx            Konva.js stage, 13-layer stack, colour overlay tint
       AssetPanel.jsx                  Collapsible category panels + colour pickers
       TopBar.jsx                      Guest name, status badge, Approve/Revision/Reset/Undo/Redo
       BottomBar.jsx                   Prev/Next navigation + guest counter
@@ -82,16 +82,17 @@ cached so the illustrator can work without a constant connection.
 
 /assets                               Hand-drawn PNG assets (630×880, RGBA)
   /hair_back                          Hair bulk/length/shape — renders behind face (z=1)
-  /hair_front                         Fringe/bangs — renders over face (z=9)
-  /body                               Body silhouette
-  /outfit                             Clothing overlay
-  /face
-  /eyes
-  /brows
-  /nose
-  /mouth
-  /facialhair
-  /accessories
+  /face                               Face shape — renders above hair_back (z=2)
+  /body                               Body silhouette (z=3)
+  /outfit                             Clothing overlay (z=3)
+  /facialhair                         Beard/stubble/none (z=4)
+  /nose                               (z=5)
+  /mouth                              (z=6)
+  /eyes                               Drawn in real colour (z=7)
+  /twinkle                            Eye shine sparkle — or transparent 'none' (z=8)
+  /brows                              (z=9)
+  /accessories                        Glasses/earrings — drawn in real colour (z=10)
+  /hair_front                         Fringe/bangs — renders over face (z=11)
   /frames
 
 /scripts
@@ -115,33 +116,36 @@ CLAUDE.md
 ### Layer order (bottom to top, z=1 is lowest)
 ```
 z=0   Card frame (full-bleed background + decorative border — below all character layers)
-z=1   Hair back (bulk, length, shape of hair — sits behind the face)
-z=2   Body + outfit (torso, arms, clothing)
-z=3   Face shape (face oval — drawn in neutral grey, tinted to skin tone)
+z=1   Hair back (bulk, length, shape of hair — sits behind the head)
+z=2   Face shape (face oval — drawn in white/near-white, tinted to skin tone)
+z=3   Body + outfit (torso, arms, clothing — body silhouette then clothing overlay)
 z=4   Facial hair (beard, stubble, moustache — or transparent 'none')
 z=5   Nose
 z=6   Mouth
 z=7   Eyes (drawn in real colour — separate assets per eye colour)
-z=8   Eyebrows
-z=9   Hair front / bangs (fringe, face-framing pieces — or transparent 'none')
+z=8   Twinkle (eye shine — decorative sparkle overlay on eyes — or transparent 'none')
+z=9   Eyebrows
 z=10  Accessories (glasses, earrings, hat — drawn in real colour)
+z=11  Hair front / bangs (fringe, face-framing pieces — or transparent 'none')
 ```
 
 The hair split is the critical architectural decision: hair_back sits behind the face so the face oval is always visible, while hair_front (fringe/bangs) sits on top to frame the face naturally. hair_front_none.png (transparent) is required so guests with no fringe still render correctly.
 
 Name + wedding date text is overlaid at export time. It is NOT a PNG asset.
 
-### Tinting system (multiply blend mode)
-The app uses CSS/canvas multiply blending to colour greyscale assets at runtime.
+### Tinting system (colour overlay)
+The app uses canvas colour overlay to tint white/near-white assets at runtime.
 This means one drawing covers infinite colour variations — no redraws needed.
+The colour picker value becomes the exact colour of the filled areas, including pale/light tones.
 
 | What | How to draw | Why |
 |---|---|---|
-| Hair back fills | Pure black (#000000) | Multiply × tint colour = tint colour exactly |
-| Hair front fills | Pure black (#000000) | Same tint as hair_back — one colour picker covers both |
-| Skin / face fill | Mid-grey (#888888) | Allows tint to retain luminosity |
-| Clothing fills | Mid-grey (#777777) | Operator picks colour from guest photo |
+| Hair back fills | White (#FFFFFF) | Overlay tint → colour picker value exactly |
+| Hair front fills | White (#FFFFFF) | Same tint as hair_back — one colour picker covers both |
+| Skin / face fill | White/near-white | Overlay tint → exact skin tone from picker |
+| Clothing fills | White/near-white | Operator picks colour from guest photo |
 | Eyes | Real colour (brown, blue, green etc) | Swapped as separate assets, not tinted |
+| Twinkle | Real colour or transparent | Decorative sparkle — not tinted |
 | Outlines everywhere | Full black (#000000) at 100% opacity | Black × anything = black, stays crisp |
 | Accessories | Real colour | Decorative, shouldn't shift |
 | Card frames | Full colour | Creative choice per wedding style |
@@ -163,6 +167,7 @@ Examples:
 - `accessory_glasses_round.png`
 - `facialhair_none.png` (transparent PNG — required)
 - `accessory_glasses_none.png` (transparent PNG — required)
+- `twinkle_none.png` (transparent PNG — **required**, default for guests with no eye shine)
 - `frame_botanical.png`
 
 Colour variants handled by tinting do NOT need separate files.
@@ -173,6 +178,7 @@ Colour variants handled by tinting do NOT need separate files.
 |---|---|---|
 | Face shape | 6 | Round, oval, square, heart, oblong, diamond |
 | Eyes | 8 | Almond, round, monolid, hooded, downturned, wide-set, close-set, with glasses |
+| Twinkle | ~4 | None (transparent, required), small sparkle, star, multi-sparkle |
 | Eyebrows | 6 | Thin arched, thick straight, natural, bushy, barely-there, strong |
 | Nose | 5 | Button, straight, wide, curved, upturned |
 | Mouth | 6 | Full lips, thin lips, wide smile, closed smile, neutral, open grin |
@@ -185,7 +191,7 @@ Colour variants handled by tinting do NOT need separate files.
 | Glasses | 4 | None, round frames, rectangular frames, sunglasses |
 | Card frames | 4 | Botanical, geometric, minimal, vintage |
 
-Total must-have: ~84–86 base assets. Colour variants handled by tinting (no extra files).
+Total must-have: ~88–92 base assets. Colour variants handled by tinting (no extra files).
 
 ---
 
@@ -206,6 +212,7 @@ Each illustration is stored in the database as a JSON recipe — NOT as a render
     "nose":       "nose_button",
     "mouth":      "mouth_closedsmile",
     "eyes":       "eyes_almond",
+    "twinkle":    "twinkle_none",
     "brows":      "brow_natural",
     "hair_front": "hair_front_none",
     "accessory":  "accessory_glasses_none"
@@ -365,9 +372,9 @@ Phase 2 is functional with 5 mock guests and placeholder PNG assets. It is wired
 - Card frame chosen once per wedding (not per guest)
 - Guest name + wedding date overlaid at export time, not in the editor
 - All assets drawn by hand in Procreate, exported as individual PNGs
-- Tinting via multiply blend mode — hair in black, skin/outfit in mid-grey
+- Tinting via colour overlay — assets drawn in white/near-white, colour picker value becomes exact fill colour (full range including pale tones)
 - sRGB colour mode throughout — never CMYK
-- Hair split into two layers: `hair_back` (z=1, behind face) and `hair_front` (z=9, over face for fringe/bangs). Do not collapse back to a single hair layer — the split is what makes the face oval always visible regardless of hair style.
+- Hair split into two layers: `hair_back` (z=1, behind face) and `hair_front` (z=11, over face for fringe/bangs). Do not collapse back to a single hair layer — the split is what makes the face oval always visible regardless of hair style.
 - `hair_front_none.png` (fully transparent) must always exist — it is the default for guests with no fringe
 - Body and outfit are separate recipe keys and separate asset folders — body is the silhouette/pose, outfit is the clothing overlay on top of it. Both use the outfit colour tint.
 - Compositor state managed via `useReducer` (not external state library). History stack capped at 10 snapshots.

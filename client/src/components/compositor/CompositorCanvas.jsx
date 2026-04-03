@@ -6,43 +6,46 @@ export const CANVAS_H = 880
 
 // ─── Layer stack: bottom to top ──────────────────────────────────────────────
 // Matches CLAUDE.md z-order exactly.
-// tintKey: which colour from recipe.colours to use for multiply tinting
+// tintKey: which colour from recipe.colours to apply as colour overlay
 const LAYER_STACK = [
-  { key: 'frame',      folder: 'frames',      tintKey: null },      // z=0  card frame background
-  { key: 'hair_back',  folder: 'hair_back',   tintKey: 'hair' },    // z=1  hair bulk/length (behind face)
-  { key: 'body',       folder: 'body',        tintKey: 'outfit' },  // z=2a body silhouette
-  { key: 'outfit',     folder: 'outfit',      tintKey: 'outfit' },  // z=2b clothing
-  { key: 'face',       folder: 'face',        tintKey: 'skin' },    // z=3  face oval
-  { key: 'facialhair', folder: 'facialhair',  tintKey: null },      // z=4  beard/stubble/none
-  { key: 'nose',       folder: 'nose',        tintKey: null },      // z=5
-  { key: 'mouth',      folder: 'mouth',       tintKey: null },      // z=6
-  { key: 'eyes',       folder: 'eyes',        tintKey: null },      // z=7
-  { key: 'brows',      folder: 'brows',       tintKey: null },      // z=8
-  { key: 'hair_front', folder: 'hair_front',  tintKey: 'hair' },    // z=9  fringe/bangs (over face)
-  { key: 'accessory',  folder: 'accessories', tintKey: null },      // z=10 glasses/earrings/hat
+  { key: 'frame',      folder: 'frames',      tintKey: null },       // z=0  card frame background
+  { key: 'hair_back',  folder: 'hair_back',   tintKey: 'hair' },     // z=1  hair bulk/length (behind head)
+  { key: 'face',       folder: 'face',        tintKey: 'skin' },     // z=2  face shape
+  { key: 'body',       folder: 'body',        tintKey: 'outfit' },   // z=3a body silhouette
+  { key: 'outfit',     folder: 'outfit',      tintKey: 'outfit' },   // z=3b clothing
+  { key: 'facialhair', folder: 'facialhair',  tintKey: null },       // z=4  beard/stubble/none
+  { key: 'nose',       folder: 'nose',        tintKey: null },       // z=5
+  { key: 'mouth',      folder: 'mouth',       tintKey: null },       // z=6
+  { key: 'eyes',       folder: 'eyes',        tintKey: null },       // z=7  drawn in real colour
+  { key: 'twinkle',    folder: 'twinkle',     tintKey: null },       // z=8  eye shine sparkle
+  { key: 'brows',      folder: 'brows',       tintKey: null },       // z=9
+  { key: 'accessory',  folder: 'accessories', tintKey: null },       // z=10 glasses/earrings/hat
+  { key: 'hair_front', folder: 'hair_front',  tintKey: 'hair' },     // z=11 fringe/bangs (over face)
 ]
 
-// ─── Multiply tint ────────────────────────────────────────────────────────────
-// Draws the PNG, then overlays the tint colour using multiply blend mode,
-// then clips back to the original alpha so transparency is preserved.
-function applyMultiplyTint(img, tintHex) {
+// ─── Colour overlay tint ──────────────────────────────────────────────────────
+// Assets must be drawn with white/near-white fills and pure black outlines.
+// The colour picker value becomes the exact colour of the filled areas:
+//   tint fill × white asset fill = tint exactly (full range, including pale tones)
+//   tint fill × black outline   = black (outlines stay crisp)
+// Eyes and accessories are drawn in real colour and are not tinted.
+function applyColourOverlay(img, tintHex) {
   const canvas = document.createElement('canvas')
   canvas.width = CANVAS_W
   canvas.height = CANVAS_H
   const ctx = canvas.getContext('2d')
 
-  // 1. Draw the original asset
-  ctx.drawImage(img, 0, 0, CANVAS_W, CANVAS_H)
-
-  // 2. Multiply blend: tint × pixel = colourised pixel
-  //    Black outlines (0,0,0) × anything = black (preserved)
-  //    Mid-grey fills (128,128,128) × tint = tinted fill
-  //    White fills (255,255,255) × tint = tint colour exactly
-  ctx.globalCompositeOperation = 'multiply'
+  // 1. Fill with the target colour
   ctx.fillStyle = tintHex
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
 
-  // 3. Restore original alpha: keep composited result only where source was opaque
+  // 2. Multiply the asset on top:
+  //    tint × white fill   = tint colour exactly ✓
+  //    tint × black outline = black ✓
+  ctx.globalCompositeOperation = 'multiply'
+  ctx.drawImage(img, 0, 0, CANVAS_W, CANVAS_H)
+
+  // 3. Clip result to original asset alpha (preserves transparency)
   ctx.globalCompositeOperation = 'destination-in'
   ctx.drawImage(img, 0, 0, CANVAS_W, CANVAS_H)
 
@@ -94,7 +97,7 @@ export default function CompositorCanvas({ recipe, availableAssets, scale }) {
 
         // Tint layers that need it
         next[layer.key] = layer.tintKey
-          ? applyMultiplyTint(img, recipe.colours[layer.tintKey] ?? '#888888')
+          ? applyColourOverlay(img, recipe.colours[layer.tintKey] ?? '#FFFFFF')
           : img
       }
 

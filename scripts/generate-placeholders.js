@@ -279,6 +279,12 @@ function makeFacialHair(variant) {
   }
 }
 
+function makeTwinkle(variant) {
+  // twinkle_none is transparent — default for guests with no eye shine.
+  // Future variants (sparkle, star, etc.) drawn in real colour over the eyes layer.
+  return () => transparent()
+}
+
 function makeAccessory(variant) {
   if (variant === 'glasses_none') {
     return () => transparent()
@@ -349,10 +355,12 @@ const ASSETS = [
   { dir: 'hair_back',  file: 'hair_back_straight_long.png',  fn: makeHairBack('straight_long') },
   { dir: 'hair_back',  file: 'hair_back_straight_short.png', fn: makeHairBack('straight_short') },
   { dir: 'hair_back',  file: 'hair_back_curly_short.png',    fn: makeHairBack('curly_short') },
-  // hair_front (fringe/bangs — sits over face at z=9; hair_front_none is required)
+  // hair_front (fringe/bangs — sits over face at z=11; hair_front_none is required)
   { dir: 'hair_front', file: 'hair_front_none.png',          fn: makeHairFront('none') },
   { dir: 'hair_front', file: 'hair_front_fringe.png',        fn: makeHairFront('fringe') },
   { dir: 'hair_front', file: 'hair_front_curtains.png',      fn: makeHairFront('curtains') },
+  // twinkle (eye shine sparkle — sits over eyes at z=8; twinkle_none is required)
+  { dir: 'twinkle',    file: 'twinkle_none.png',             fn: makeTwinkle('none') },
   // accessories
   { dir: 'accessories', file: 'accessory_glasses_none.png',  fn: makeAccessory('glasses_none') },
   { dir: 'accessories', file: 'accessory_glasses_round.png', fn: makeAccessory('glasses_round') },
