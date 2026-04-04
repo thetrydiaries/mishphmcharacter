@@ -47,6 +47,18 @@ export default function Compositor() {
   // Canvas scale: fit the canvas into the available vertical space
   const [canvasScale, setCanvasScale] = useState(0.5)
   const workAreaRef = useRef(null)
+  const stageRef    = useRef(null)
+
+  const exportPNG = useCallback(() => {
+    const stage = stageRef.current
+    if (!stage) return
+    const dataURL = stage.toDataURL({ pixelRatio: 1 })
+    const slug    = (currentGuest?.name ?? 'guest').toLowerCase().replace(/\s+/g, '-')
+    const a       = document.createElement('a')
+    a.href        = dataURL
+    a.download    = `${slug}.png`
+    a.click()
+  }, [currentGuest?.name])
 
   const updateScale = useCallback(() => {
     if (!workAreaRef.current) return
@@ -87,6 +99,7 @@ export default function Compositor() {
         onReset={reset}
         onUndo={undo}
         onRedo={redo}
+        onExport={exportPNG}
       />
 
       {/* Main work area */}
@@ -131,6 +144,7 @@ export default function Compositor() {
                 recipe={currentGuest.recipe}
                 availableAssets={availableAssets ?? {}}
                 scale={canvasScale}
+                stageRef={stageRef}
               />
             </div>
           </div>

@@ -1,8 +1,40 @@
 import { useReducer, useEffect, useCallback } from 'react'
-import { MOCK_GUESTS } from '../data/mockGuests'
 
 const STORAGE_KEY = 'mishph_compositor_v1'
 const MAX_HISTORY = 10
+
+const BLANK_RECIPE = {
+  assets: {
+    frame:      null,
+    body:       null,
+    outfit:     null,
+    face:       null,
+    facialhair: null,
+    nose:       null,
+    mouth:      null,
+    eyes:       null,
+    twinkle:    null,
+    brows:      null,
+    hair_back:  null,
+    hair_front: null,
+    accessory:  [],
+  },
+  colours: {
+    hair:   '#3D1F0A',
+    skin:   '#C08060',
+    outfit: '#2D3561',
+  },
+}
+
+const BLANK_GUEST = {
+  id: 'guest-current',
+  name: 'Guest',
+  table: null,
+  status: 'pending',
+  photo: null,
+  recipe: BLANK_RECIPE,
+  aiRecipe: null,  // set when LOAD_FROM_ANALYSIS fires; used as Reset baseline
+}
 
 // ─── localStorage helpers ────────────────────────────────────────────────────
 
@@ -19,7 +51,7 @@ function persistGuests(guests) {
   try {
     const toSave = {}
     guests.forEach(g => {
-      toSave[g.id] = { recipe: g.recipe, status: g.status }
+      toSave[g.id] = { recipe: g.recipe, status: g.status, aiRecipe: g.aiRecipe }
     })
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
   } catch {}
@@ -29,18 +61,20 @@ function persistGuests(guests) {
 
 function buildInitialGuests() {
   const saved = loadSavedState()
-  return MOCK_GUESTS.map(g => ({
-    ...g,
-    recipe: saved[g.id]?.recipe ?? g.recipe,
-    status: saved[g.id]?.status ?? g.status,
-  }))
+  const s = saved[BLANK_GUEST.id] ?? {}
+  return [{
+    ...BLANK_GUEST,
+    recipe:    s.recipe    ?? BLANK_GUEST.recipe,
+    status:    s.status    ?? BLANK_GUEST.status,
+    aiRecipe:  s.aiRecipe  ?? BLANK_GUEST.aiRecipe,
+  }]
 }
 
 const initialState = {
   guests: buildInitialGuests(),
   currentIndex: 0,
-  history: [],   // array of recipe snapshots for current guest
-  future: [],    // redo stack
+  history: [],
+  future: [],
 }
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
@@ -91,7 +125,8 @@ function reducer(state, action) {
     }
 
     case 'RESET': {
-      const originalRecipe = MOCK_GUESTS[currentIndex].recipe
+      // Reset to the AI-suggested recipe, or blank if no analysis has been loaded
+      const originalRecipe = current.aiRecipe ?? BLANK_RECIPE
       return {
         ...state,
         guests: guests.map((g, i) => i === currentIndex ? { ...g, recipe: originalRecipe } : g),
@@ -124,11 +159,11 @@ function reducer(state, action) {
 
     case 'LOAD_FROM_ANALYSIS': {
       // Replace the current guest's recipe with the AI-matched result.
-      // Clears undo/redo history — the loaded recipe is the new baseline.
+      // Also stores it as aiRecipe so Reset can return to this baseline.
       return {
         ...state,
         guests: guests.map((g, i) =>
-          i === currentIndex ? { ...g, recipe: action.recipe } : g
+          i === currentIndex ? { ...g, recipe: action.recipe, aiRecipe: action.recipe } : g
         ),
         history: [],
         future: [],
@@ -164,19 +199,17 @@ export function useCompositor() {
   }, [guests])
 
   // Keyboard shortcuts
-  const prevGuest = useCallback(() => dispatch({ type: 'NAVIGATE', delta: -1 }), [])
-  const nextGuest = useCallback(() => dispatch({ type: 'NAVIGATE', delta: 1 }), [])
-  const approve = useCallback(() => dispatch({ type: 'SET_STATUS', status: 'approved' }), [])
+  const prevGuest    = useCallback(() => dispatch({ type: 'NAVIGATE', delta: -1 }), [])
+  const nextGuest    = useCallback(() => dispatch({ type: 'NAVIGATE', delta: 1 }), [])
+  const approve      = useCallback(() => dispatch({ type: 'SET_STATUS', status: 'approved' }), [])
   const flagRevision = useCallback(() => dispatch({ type: 'SET_STATUS', status: 'needs_revision' }), [])
-  const undo = useCallback(() => dispatch({ type: 'UNDO' }), [])
-  const redo = useCallback(() => dispatch({ type: 'REDO' }), [])
+  const undo         = useCallback(() => dispatch({ type: 'UNDO' }), [])
+  const redo         = useCallback(() => dispatch({ type: 'REDO' }), [])
 
   useEffect(() => {
     function onKeyDown(e) {
-      // Don't intercept when typing in an input
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
-
-      if (e.key === 'ArrowLeft') { e.preventDefault(); prevGuest() }
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); prevGuest() }
       if (e.key === 'ArrowRight') { e.preventDefault(); nextGuest() }
       if (e.key === 'a' || e.key === 'A') approve()
       if (e.key === 'r' || e.key === 'R') flagRevision()
@@ -195,12 +228,12 @@ export function useCompositor() {
     canUndo: history.length > 0,
     canRedo: future.length > 0,
 
-    swapAsset: (category, assetName) => dispatch({ type: 'SWAP_ASSET', category, assetName }),
-    setColour: (colourType, hex) => dispatch({ type: 'SET_COLOUR', colourType, hex }),
-    loadFromAnalysis: (recipe) => dispatch({ type: 'LOAD_FROM_ANALYSIS', recipe }),
+    swapAsset:        (category, assetName) => dispatch({ type: 'SWAP_ASSET', category, assetName }),
+    setColour:        (colourType, hex)     => dispatch({ type: 'SET_COLOUR', colourType, hex }),
+    loadFromAnalysis: (recipe)              => dispatch({ type: 'LOAD_FROM_ANALYSIS', recipe }),
     approve,
     flagRevision,
-    reset: () => dispatch({ type: 'RESET' }),
+    reset:    () => dispatch({ type: 'RESET' }),
     undo,
     redo,
     prevGuest,

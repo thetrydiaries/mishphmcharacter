@@ -19,7 +19,7 @@ const STATUS_STYLES = {
   },
 }
 
-export default function TopBar({ guest, canUndo, canRedo, onApprove, onFlagRevision, onReset, onUndo, onRedo }) {
+export default function TopBar({ guest, canUndo, canRedo, onApprove, onFlagRevision, onReset, onUndo, onRedo, onExport }) {
   const statusStyle = STATUS_STYLES[guest.status] ?? STATUS_STYLES.pending
 
   return (
@@ -74,6 +74,14 @@ export default function TopBar({ guest, canUndo, canRedo, onApprove, onFlagRevis
           title="Approve illustration (A)"
         >
           Approve
+        </button>
+        <div style={styles.divider} />
+        <button
+          style={{ ...styles.btn, ...styles.btnExport }}
+          onClick={onExport}
+          title="Export PNG (630×880)"
+        >
+          Export PNG
         </button>
       </div>
     </header>
@@ -156,5 +164,10 @@ const styles = {
     background: 'var(--green)',
     color: '#fff',
     border: '1px solid var(--green)',
+  },
+  btnExport: {
+    background: 'var(--surface-raised)',
+    color: 'var(--text)',
+    border: '1px solid var(--border)',
   },
 }

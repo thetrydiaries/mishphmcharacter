@@ -20,9 +20,9 @@ Look carefully at the person and return ONLY a valid JSON object with these exac
   "hairLength": "short" | "medium" | "long",
   "hairStyle": "straight" | "wavy" | "curly" | "bun" | "bob" | "slick",
   "hairFrontStyle": "none" | "fringe" | "curtains" | "side_part" | "slick" | "messy" | "long",
-  "faceShape": "oval" | "round" | "square" | "heart" | "oblong" | "diamond",
+  "faceShape": "oval" | "round" | "square" | "diamond",
   "eyeShape": "almond" | "round" | "monolid" | "hooded",
-  "eyeColour": "black" | "brown" | "blue" | "green" | "hazel",
+  "eyeColour": "black" | "brown" | "blue" | "green",
   "browShape": "natural" | "arched" | "straight" | "bushy" | "barely-there",
   "noseShape": "button" | "straight" | "wide" | "curved" | "upturned",
   "mouthShape": "full" | "thin" | "wide" | "neutral",
@@ -36,6 +36,27 @@ Look carefully at the person and return ONLY a valid JSON object with these exac
 }
 
 If you cannot determine a value confidently, pick the closest match — never return null.`
+
+// ─── Mock features (?mock=true query param) ───────────────────────────────────
+const MOCK_FEATURES = {
+  gender:          'female',
+  hairLength:      'long',
+  hairStyle:       'short',
+  hairFrontStyle:  'curtains',
+  faceShape:       'diamond',
+  eyeShape:        'hooded',
+  eyeColour:       'blue',
+  browShape:       'thick',
+  noseShape:       'button',
+  mouthShape:      'smile',
+  hasFacialHair:   false,
+  facialHairStyle: 'none',
+  hasGlasses:      false,
+  outfitStyle:     'shirtpocket',
+  skinTone:        '#E8B89D',
+  hairColour:      '#8B5A2B',
+  outfitColour:    '#2D3561',
+}
 
 // Walk one category's rules. Returns { asset, flagged }.
 // flagged=true only when there were rules to try but none matched (unexpected feature value).
@@ -59,8 +80,13 @@ router.post('/', upload.single('photo'), async (req, res) => {
 
     let features
 
-    // ── Convert image and call Claude Vision ──────────────────────────────────
-    console.log('[analyse] received file:', req.file.originalname, req.file.mimetype, req.file.size, 'bytes')
+    if (req.query.mock === 'true') {
+      // ── Mock mode — pass ?mock=true to skip the Claude API call ──────────────
+      console.log('[analyse] MOCK MODE — skipping Claude API call')
+      features = MOCK_FEATURES
+    } else {
+      // ── Convert image and call Claude Vision ────────────────────────────────
+      console.log('[analyse] received file:', req.file.originalname, req.file.mimetype, req.file.size, 'bytes')
 
       const jpegBuffer = await sharp(req.file.buffer)
         .resize({ width: 1024, withoutEnlargement: true })
@@ -81,7 +107,7 @@ router.post('/', upload.single('photo'), async (req, res) => {
           'content-type':      'application/json',
         },
         body: JSON.stringify({
-          model:      'claude-opus-4-5',
+          model:      'claude-sonnet-4-6',
           max_tokens: 1024,
           system:     SYSTEM_PROMPT,
           messages: [
@@ -112,7 +138,8 @@ router.post('/', upload.single('photo'), async (req, res) => {
         .replace(/^```(?:json)?\s*/i, '')
         .replace(/\s*```$/,           '')
 
-    features = JSON.parse(rawText)
+      features = JSON.parse(rawText)
+    }
 
     // ── Apply asset mapping rules ─────────────────────────────────────────────
     const assets = {}

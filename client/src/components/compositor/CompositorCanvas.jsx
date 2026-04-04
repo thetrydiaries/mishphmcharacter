@@ -13,7 +13,7 @@ const LAYER_STACK = [
   { key: 'body',       folder: 'body',        tintKey: 'skin' },     // z=2  body silhouette (skin tone)
   { key: 'face',       folder: 'face',        tintKey: 'skin' },     // z=3  face shape (skin tone)
   { key: 'outfit',     folder: 'outfit',      tintKey: 'outfit' },   // z=4  clothing overlay
-  { key: 'facialhair', folder: 'facialhair',  tintKey: null },       // z=5  beard/stubble/none
+  { key: 'facialhair', folder: 'facialhair',  tintKey: 'hair' },     // z=5  beard/stubble/none (same colour as hair)
   { key: 'nose',       folder: 'nose',        tintKey: null },       // z=6
   { key: 'mouth',      folder: 'mouth',       tintKey: null },       // z=7
   { key: 'eyes',       folder: 'eyes',        tintKey: null },       // z=8  drawn in real colour
@@ -54,7 +54,7 @@ function applyColourOverlay(img, tintHex) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function CompositorCanvas({ recipe, availableAssets, scale }) {
+export default function CompositorCanvas({ recipe, availableAssets, scale, stageRef }) {
   const [layerImages, setLayerImages] = useState({})
   // Cache raw HTMLImageElements by URL so we don't re-fetch on colour change
   const imgCache = useRef({})
@@ -121,6 +121,7 @@ export default function CompositorCanvas({ recipe, availableAssets, scale }) {
 
   return (
     <Stage
+      ref={stageRef}
       width={CANVAS_W * scale}
       height={CANVAS_H * scale}
       scaleX={scale}
