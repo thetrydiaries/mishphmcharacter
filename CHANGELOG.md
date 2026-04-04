@@ -5,7 +5,29 @@ Format: newest first.
 
 ---
 
-## [Unreleased] — Phase 4 iteration
+## [Unreleased] — Phase 5 planned
+- Single PNG export via Konva `stage.toDataURL()` — Export button in TopBar, browser download named after guest
+- Batch ZIP export of all approved cards
+- PDF layout on A4 sheets
+- Guest name + wedding date text overlay at export time
+
+---
+
+## [Unreleased] — Phase 4 iteration (continued)
+
+### Hair mapping fixes
+- Renamed `hair_length` category key → `hair_back` to match compositor and asset folder
+- Renamed all `hair_length_*` asset references → `hair_back_*` to match files on disk
+- Stand-ins set for missing assets (wavy/curly long, medium, curly short → `hair_back_straight_long` / `hair_back_short`) until real assets are drawn
+- Fixed `hair_front` default: `hair_front_long` → `hair_front_none`
+
+### Mock mode (query param)
+- `?mock=true` on `/api/analyse` skips Claude API and returns `MOCK_FEATURES`
+- Triggered by changing XHR URL in `Upload.jsx` — no env var or server restart needed
+
+### Twinkle default
+- All mock guests updated from `twinkle_none` → `twinkle_circle`
+- Consistent with `assetMapping.json` default
 
 ### AI analysis prompt
 - Added `gender` field (`female | male | other`) — used to auto-assign accessories

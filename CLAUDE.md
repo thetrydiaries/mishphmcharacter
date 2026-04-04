@@ -303,11 +303,13 @@ This means:
 - Click any illustration to open full editor
 
 ### Print export
-- Format: PNG at 300dpi, 630×880px (63×88mm trading card)
-- Alternative: PDF with all cards laid out on A4 sheets
+- Format: PNG at 630×880px native (63×88mm trading card at 240dpi, or 2× for 1260×1760 at ~480dpi)
+- Single export: Konva `stage.toDataURL({ pixelRatio: 1 })` → browser download, named after guest
+- Export button lives in TopBar alongside Approve/Revision/Reset
+- Stage ref forwarded from Compositor.jsx → CompositorCanvas.jsx to access Konva stage
 - Card frame + guest name + wedding date applied at export time (not in editor)
-- Batch export: ZIP of all approved cards
-- Single card re-export available
+- Batch export: ZIP of all approved cards (later task)
+- PDF layout on A4 sheets (later task)
 
 ---
 
@@ -351,7 +353,7 @@ This means:
 | Phase 2 — Compositor | Konva.js canvas, asset panel, tinting, undo/redo, card preview | Complete |
 | Phase 3 — Orders + guests | Wedding order dashboard, guest list, status tracking, notes | Not started |
 | Phase 4 — Upload + AI | Bulk upload, HEIC conversion, Claude Vision API, asset matching | In progress |
-| Phase 5 — Export | 300dpi PNG export, PDF layout, batch ZIP download | Not started |
+| Phase 5 — Export | Single PNG export (Konva toDataURL), batch ZIP, PDF layout | Not started |
 | Phase 6 — Test wedding | Real 50-guest order, measure success metrics, fix blockers | Not started |
 
 ## Current status
