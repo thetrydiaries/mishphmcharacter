@@ -34,10 +34,17 @@ export default function AssetPanel({ recipe, availableAssets, onSwapAsset, onSet
       {/* Asset categories */}
       {CATEGORY_META.map(({ folder, label, recipeKey }) => {
         const assets = availableAssets?.[folder] ?? []
-        const activeAsset = recipe.assets[recipeKey]
-        const isOpen = openCategory === folder
-
+        const recipeValue  = recipe.assets[recipeKey]
+        const isMulti      = Array.isArray(recipeValue)
+        const activeAsset  = isMulti ? null : recipeValue
+        const activeAssets = isMulti ? recipeValue : null
+        const isOpen    = openCategory === folder
         const isFlagged = flaggedCategories.includes(recipeKey)
+
+        // Multi-select panels hide _none placeholder assets (empty array = nothing shown)
+        const displayAssets = isMulti
+          ? assets.filter(a => !a.name.endsWith('_none'))
+          : assets
 
         return (
           <div key={folder} style={styles.section}>
@@ -50,39 +57,50 @@ export default function AssetPanel({ recipe, availableAssets, onSwapAsset, onSet
                 <span style={styles.reviewDot} title="AI suggestion — please review" />
               )}
               <span style={styles.chevron}>{isOpen ? '▲' : '▼'}</span>
-              {activeAsset && (
-                <span style={styles.activePill}>
-                  {activeAsset.split('_').slice(1).join(' ') || activeAsset}
-                </span>
+              {isMulti ? (
+                activeAssets.length > 0 && (
+                  <span style={styles.activePill}>{activeAssets.length} selected</span>
+                )
+              ) : (
+                activeAsset && (
+                  <span style={styles.activePill}>
+                    {activeAsset.split('_').slice(1).join(' ') || activeAsset}
+                  </span>
+                )
               )}
             </button>
 
             {isOpen && (
               <div style={styles.thumbGrid}>
-                {assets.length === 0 ? (
+                {displayAssets.length === 0 ? (
                   <p style={styles.emptyNote}>No assets in /{folder}/ yet</p>
                 ) : (
-                  assets.map(asset => (
-                    <button
-                      key={asset.name}
-                      title={asset.name}
-                      style={{
-                        ...styles.thumbBtn,
-                        ...(activeAsset === asset.name ? styles.thumbBtnActive : {}),
-                      }}
-                      onClick={() => onSwapAsset(recipeKey, asset.name)}
-                    >
-                      <img
-                        src={asset.url}
-                        alt={asset.name}
-                        style={styles.thumbImg}
-                        loading="lazy"
-                      />
-                      <span style={styles.thumbName}>
-                        {asset.name.replace(/_/g, ' ')}
-                      </span>
-                    </button>
-                  ))
+                  displayAssets.map(asset => {
+                    const isActive = isMulti
+                      ? activeAssets.includes(asset.name)
+                      : activeAsset === asset.name
+                    return (
+                      <button
+                        key={asset.name}
+                        title={asset.name}
+                        style={{
+                          ...styles.thumbBtn,
+                          ...(isActive ? styles.thumbBtnActive : {}),
+                        }}
+                        onClick={() => onSwapAsset(recipeKey, asset.name)}
+                      >
+                        <img
+                          src={asset.url}
+                          alt={asset.name}
+                          style={styles.thumbImg}
+                          loading="lazy"
+                        />
+                        <span style={styles.thumbName}>
+                          {asset.name.replace(/_/g, ' ')}
+                        </span>
+                      </button>
+                    )
+                  })
                 )}
               </div>
             )}

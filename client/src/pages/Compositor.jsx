@@ -34,9 +34,12 @@ export default function Compositor() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Flags and photo URL survive only for this compositor session (from router state)
-  const flags    = location.state?.flags    ?? []
-  const photoURL = location.state?.photoURL ?? currentGuest?.photo ?? null
+  // Flags, photo URL, and raw AI features survive only for this compositor session
+  const flags            = location.state?.flags            ?? []
+  const photoURL         = location.state?.photoURL         ?? currentGuest?.photo ?? null
+  const detectedFeatures = location.state?.detectedFeatures ?? null
+
+  const [debugOpen, setDebugOpen] = useState(false)
 
   const [availableAssets, setAvailableAssets] = useState(null)
   const [assetsError, setAssetsError] = useState(null)
@@ -149,6 +152,35 @@ export default function Compositor() {
         onPrev={prevGuest}
         onNext={nextGuest}
       />
+
+      {/* ── DEBUG PANEL (temporary) ───────────────────────────────────────────── */}
+      {detectedFeatures && (
+        <>
+          {/* Toggle button */}
+          <button style={styles.debugToggle} onClick={() => setDebugOpen(o => !o)}>
+            {debugOpen ? 'Hide' : 'Debug'} AI response
+          </button>
+
+          {/* Drawer */}
+          {debugOpen && (
+            <div style={styles.debugDrawer}>
+              <div style={styles.debugCol}>
+                <p style={styles.debugHeading}>Claude detected features</p>
+                <pre style={styles.debugPre}>
+                  {JSON.stringify(detectedFeatures, null, 2)}
+                </pre>
+              </div>
+              <div style={styles.debugDivider} />
+              <div style={styles.debugCol}>
+                <p style={styles.debugHeading}>Current recipe</p>
+                <pre style={styles.debugPre}>
+                  {JSON.stringify(currentGuest.recipe, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
@@ -241,5 +273,65 @@ const styles = {
     height: '100svh',
     fontFamily: 'var(--font-ui)',
     color: 'var(--text-muted)',
+  },
+  debugToggle: {
+    position: 'fixed',
+    bottom: 48,
+    right: 16,
+    zIndex: 100,
+    padding: '5px 12px',
+    fontSize: 11,
+    fontFamily: 'var(--font-ui)',
+    background: '#1A1A2E',
+    color: '#A0C4FF',
+    border: '1px solid #3A3A6E',
+    borderRadius: 6,
+    cursor: 'pointer',
+    opacity: 0.85,
+  },
+  debugDrawer: {
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '42vh',
+    zIndex: 99,
+    background: '#0F0F1A',
+    borderTop: '2px solid #3A3A6E',
+    display: 'flex',
+    flexDirection: 'row',
+    overflow: 'hidden',
+  },
+  debugCol: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    padding: '10px 14px',
+  },
+  debugHeading: {
+    margin: '0 0 6px 0',
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    color: '#6A8FBF',
+    fontFamily: 'var(--font-ui)',
+    flexShrink: 0,
+  },
+  debugPre: {
+    flex: 1,
+    margin: 0,
+    overflow: 'auto',
+    fontSize: 11.5,
+    lineHeight: 1.6,
+    color: '#C8D8F0',
+    fontFamily: 'ui-monospace, "Cascadia Code", "Fira Code", monospace',
+    whiteSpace: 'pre',
+  },
+  debugDivider: {
+    width: 1,
+    background: '#3A3A6E',
+    flexShrink: 0,
   },
 }

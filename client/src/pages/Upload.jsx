@@ -70,10 +70,10 @@ export default function Upload() {
         xhr.send(formData)
       })
 
-      // Pass recipe, flags, and a local blob URL for the photo to the compositor
+      // Pass recipe, flags, raw AI features, and a local blob URL for the photo to the compositor
       const photoURL = URL.createObjectURL(file)
       navigate('/compositor', {
-        state: { recipe: result.recipe, flags: result.flags, photoURL },
+        state: { recipe: result.recipe, flags: result.flags, photoURL, detectedFeatures: result.detectedFeatures },
       })
     } catch (err) {
       setError(err.message)

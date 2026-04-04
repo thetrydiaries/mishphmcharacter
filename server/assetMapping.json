@@ -2,27 +2,30 @@
   "version": 1,
   "_comment": "Rules evaluate top-to-bottom per category; first full match wins. If no rule matches and the rules array is non-empty, 'default' is used and the layer is added to the flags list (yellow in AssetPanel). Empty rules = intentional default, never flagged.",
   "categories": {
-    "hair_back": {
-      "default": "hair_back_short",
+    "hair_length": {
+      "default": "hair_length_short",
       "rules": [
-        { "conditions": { "hairStyle": "bun" },                                   "asset": "hair_back_buns" },
-        { "conditions": { "hairStyle": "bob" },                                   "asset": "hair_back_bob" },
-        { "conditions": { "hairLength": "long",   "hairStyle": "curly" },         "asset": "hair_back_long" },
-        { "conditions": { "hairLength": "long",   "hairStyle": "wavy" },          "asset": "hair_back_long" },
-        { "conditions": { "hairLength": "long" },                                 "asset": "hair_back_straight_long" },
-        { "conditions": { "hairLength": "medium", "hairStyle": "wavy" },          "asset": "hair_back_wavy_shoulder" },
-        { "conditions": { "hairLength": "medium" },                               "asset": "hair_back_wavy_shoulder" },
-        { "conditions": { "hairLength": "short",  "hairStyle": "curly" },         "asset": "hair_back_curly_short" },
-        { "conditions": { "hairLength": "short" },                                "asset": "hair_back_short" }
+        { "conditions": { "hairStyle": "bun" },                                   "asset": "hair_length_buns" },
+        { "conditions": { "hairStyle": "bob" },                                   "asset": "hair_length_bob" },
+        { "conditions": { "hairLength": "long",   "hairStyle": "curly" },         "asset": "hair_length_long" },
+        { "conditions": { "hairLength": "long",   "hairStyle": "wavy" },          "asset": "hair_length_long" },
+        { "conditions": { "hairLength": "long" },                                 "asset": "hair_length_straight_long" },
+        { "conditions": { "hairLength": "medium", "hairStyle": "wavy" },          "asset": "hair_length_wavy_shoulder" },
+        { "conditions": { "hairLength": "medium" },                               "asset": "hair_length_wavy_shoulder" },
+        { "conditions": { "hairLength": "short",  "hairStyle": "curly" },         "asset": "hair_length_curly_short" },
+        { "conditions": { "hairLength": "short" },                                "asset": "hair_length_short" }
       ]
     },
     "hair_front": {
       "default": "hair_front_none",
       "rules": [
-        { "conditions": { "hairStyle": "slick" },                                 "asset": "hair_front_slickback" },
-        { "conditions": { "hasBangs": true,  "hairStyle": "curly" },              "asset": "hair_front_messy" },
-        { "conditions": { "hasBangs": true },                                     "asset": "hair_front_curtainbangs" },
-        { "conditions": { "hasBangs": false },                                    "asset": "hair_front_none" }
+        { "conditions": { "hairFrontStyle": "slick" },    "asset": "hair_front_slickback" },
+        { "conditions": { "hairFrontStyle": "messy" },    "asset": "hair_front_messy" },
+        { "conditions": { "hairFrontStyle": "curtains" }, "asset": "hair_front_curtainbangs" },
+        { "conditions": { "hairFrontStyle": "fringe" },   "asset": "hair_front_fringe" },
+        { "conditions": { "hairFrontStyle": "side_part" },"asset": "hair_front_sidepart" },
+        { "conditions": { "hairFrontStyle": "long" },     "asset": "hair_front_long" },
+        { "conditions": { "hairFrontStyle": "none" },     "asset": "hair_front_none" }
       ]
     },
     "face": {
@@ -42,11 +45,13 @@
       "rules": []
     },
     "outfit": {
-      "default": "outfit_casual",
+      "default": "outfit_shirt",
       "rules": [
-        { "conditions": { "outfitFormality": "formal" },       "asset": "outfit_blazer" },
-        { "conditions": { "outfitFormality": "smart-casual" }, "asset": "outfit_buttonup" },
-        { "conditions": { "outfitFormality": "casual" },       "asset": "outfit_casual" }
+        { "conditions": { "outfitStyle": "buttonup" },    "asset": "outfit_buttonup" },
+        { "conditions": { "outfitStyle": "turtleneck" },  "asset": "outfit_turtleneck" },
+        { "conditions": { "outfitStyle": "shirtpocket" }, "asset": "outfit_shirtpocket" },
+        { "conditions": { "outfitStyle": "shirt" },       "asset": "outfit_shirt" },
+        { "conditions": { "outfitStyle": "none" },        "asset": "outfit_none" }
       ]
     },
     "facialhair": {
@@ -118,15 +123,16 @@
       ]
     },
     "twinkle": {
-      "_comment": "Always none by default — intentional, never flagged.",
-      "default": "twinkle_none",
+      "_comment": "Always circle by default — intentional, never flagged.",
+      "default": "twinkle_circle",
       "rules": []
     },
     "accessory": {
-      "default": "accessories_none",
+      "default": [],
       "rules": [
-        { "conditions": { "hasGlasses": true },  "asset": "accessories_glasses" },
-        { "conditions": { "hasGlasses": false }, "asset": "accessories_none" }
+        { "conditions": { "gender": "female", "hasGlasses": true },  "asset": ["accessories_glasses", "accessories_blush", "accessories_eyelashes"] },
+        { "conditions": { "gender": "female", "hasGlasses": false }, "asset": ["accessories_blush", "accessories_eyelashes"] },
+        { "conditions": { "hasGlasses": true },                      "asset": ["accessories_glasses"] }
       ]
     },
     "frame": {

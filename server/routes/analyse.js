@@ -16,9 +16,10 @@ const SYSTEM_PROMPT = `You are analysing a photo of a wedding guest to match the
 Look carefully at the person and return ONLY a valid JSON object with these exact fields — no explanation, no markdown, just the raw JSON:
 
 {
+  "gender": "female" | "male" | "other",
   "hairLength": "short" | "medium" | "long",
   "hairStyle": "straight" | "wavy" | "curly" | "bun" | "bob" | "slick",
-  "hasBangs": true | false,
+  "hairFrontStyle": "none" | "fringe" | "curtains" | "side_part" | "slick" | "messy" | "long",
   "faceShape": "oval" | "round" | "square" | "heart" | "oblong" | "diamond",
   "eyeShape": "almond" | "round" | "monolid" | "hooded",
   "eyeColour": "black" | "brown" | "blue" | "green" | "hazel",
@@ -28,9 +29,10 @@ Look carefully at the person and return ONLY a valid JSON object with these exac
   "hasFacialHair": true | false,
   "facialHairStyle": "none" | "stubble" | "moustache" | "short beard" | "full beard" | "goatee",
   "hasGlasses": true | false,
-  "outfitFormality": "formal" | "smart-casual" | "casual",
+  "outfitStyle": "shirt" | "buttonup" | "turtleneck" | "shirtpocket" | "none",
   "skinTone": "<hex colour string that best matches their skin, e.g. #C08060>",
-  "hairColour": "<hex colour string that best matches their hair, e.g. #3D1F0A>"
+  "hairColour": "<hex colour string that best matches their hair, e.g. #3D1F0A>",
+  "outfitColour": "<hex colour string that best matches their visible clothing, e.g. #2D3561>"
 }
 
 If you cannot determine a value confidently, pick the closest match — never return null.`
@@ -55,64 +57,64 @@ router.post('/', upload.single('photo'), async (req, res) => {
       return res.status(400).json({ error: 'No photo uploaded' })
     }
 
+    let features
+
+    // ── Convert image and call Claude Vision ──────────────────────────────────
     console.log('[analyse] received file:', req.file.originalname, req.file.mimetype, req.file.size, 'bytes')
 
-    // Convert to JPEG — handles HEIC (iPhone default), PNG, WebP, etc.
-    // Resize to 1024px wide max so we stay well under Anthropic's 5MB base64 limit.
-    const jpegBuffer = await sharp(req.file.buffer)
-      .resize({ width: 1024, withoutEnlargement: true })
-      .jpeg({ quality: 85 })
-      .toBuffer()
+      const jpegBuffer = await sharp(req.file.buffer)
+        .resize({ width: 1024, withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer()
 
-    console.log('[analyse] converted to JPEG:', jpegBuffer.length, 'bytes')
+      console.log('[analyse] converted to JPEG:', jpegBuffer.length, 'bytes')
 
-    const base64 = jpegBuffer.toString('base64')
+      const base64 = jpegBuffer.toString('base64')
 
-    console.log('[analyse] calling Claude Vision...')
+      console.log('[analyse] calling Claude Vision...')
 
-    // ── Claude Vision call ──────────────────────────────────────────────────────
-    const apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key':         process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type':      'application/json',
-      },
-      body: JSON.stringify({
-        model:      'claude-opus-4-5',
-        max_tokens: 1024,
-        system:     SYSTEM_PROMPT,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type:   'image',
-                source: { type: 'base64', media_type: 'image/jpeg', data: base64 },
-              },
-              { type: 'text', text: 'Analyse this wedding guest photo.' },
-            ],
-          },
-        ],
-      }),
-    })
+      const apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key':         process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type':      'application/json',
+        },
+        body: JSON.stringify({
+          model:      'claude-opus-4-5',
+          max_tokens: 1024,
+          system:     SYSTEM_PROMPT,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type:   'image',
+                  source: { type: 'base64', media_type: 'image/jpeg', data: base64 },
+                },
+                { type: 'text', text: 'Analyse this wedding guest photo.' },
+              ],
+            },
+          ],
+        }),
+      })
 
-    if (!apiResponse.ok) {
-      const errText = await apiResponse.text()
-      throw new Error(`Claude API ${apiResponse.status}: ${errText}`)
-    }
+      if (!apiResponse.ok) {
+        const errText = await apiResponse.text()
+        throw new Error(`Claude API ${apiResponse.status}: ${errText}`)
+      }
 
-    const claudeResult = await apiResponse.json()
+      const claudeResult = await apiResponse.json()
 
-    // Strip accidental markdown fences before parsing
-    const rawText = claudeResult.content[0].text
-      .trim()
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```$/,           '')
+      // Strip accidental markdown fences before parsing
+      const rawText = claudeResult.content[0].text
+        .trim()
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```$/,           '')
 
-    const features = JSON.parse(rawText)
+    features = JSON.parse(rawText)
 
-    // ── Apply asset mapping rules ───────────────────────────────────────────────
+    // ── Apply asset mapping rules ─────────────────────────────────────────────
     const assets = {}
     const flags  = []
 
@@ -125,9 +127,9 @@ router.post('/', upload.single('photo'), async (req, res) => {
     const recipe = {
       assets,
       colours: {
-        skin:   features.skinTone   || '#C08060',
-        hair:   features.hairColour || '#3D1F0A',
-        outfit: '#2D3561',   // Operator adjusts from the guest's actual outfit colour
+        skin:   features.skinTone    || '#C08060',
+        hair:   features.hairColour  || '#3D1F0A',
+        outfit: features.outfitColour || '#2D3561',
       },
     }
 

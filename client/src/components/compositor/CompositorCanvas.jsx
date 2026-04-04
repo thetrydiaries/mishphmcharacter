@@ -63,42 +63,53 @@ export default function CompositorCanvas({ recipe, availableAssets, scale }) {
     if (!availableAssets) return
     let cancelled = false
 
+    async function fetchImg(url) {
+      if (imgCache.current[url]) return imgCache.current[url]
+      const img = await new Promise((resolve, reject) => {
+        const el = new Image()
+        el.crossOrigin = 'anonymous'
+        el.onload = () => resolve(el)
+        el.onerror = reject
+        el.src = url
+      })
+      imgCache.current[url] = img
+      return img
+    }
+
     async function loadAll() {
       const next = {}
 
       for (const layer of LAYER_STACK) {
-        const assetName = recipe.assets[layer.key]
-        if (!assetName) continue
+        const assetValue = recipe.assets[layer.key]
 
-        const assetList = availableAssets[layer.folder] ?? []
-        const asset = assetList.find(a => a.name === assetName)
-        if (!asset) continue
-
-        const url = asset.url
-
-        // Load from cache or fetch
-        let img = imgCache.current[url]
-        if (!img) {
-          try {
-            img = await new Promise((resolve, reject) => {
-              const el = new Image()
-              el.crossOrigin = 'anonymous'
-              el.onload = () => resolve(el)
-              el.onerror = reject
-              el.src = url
-            })
-            imgCache.current[url] = img
-          } catch {
-            continue
+        // Array-valued layer (accessories) — load each item independently
+        if (Array.isArray(assetValue)) {
+          const imgs = []
+          for (const assetName of assetValue) {
+            const asset = (availableAssets[layer.folder] ?? []).find(a => a.name === assetName)
+            if (!asset) continue
+            try {
+              const img = await fetchImg(asset.url)
+              if (cancelled) return
+              imgs.push(img)
+            } catch { continue }
           }
+          next[layer.key] = imgs
+          continue
         }
 
-        if (cancelled) return
+        // Single-value layer (everything else)
+        if (!assetValue) continue
+        const asset = (availableAssets[layer.folder] ?? []).find(a => a.name === assetValue)
+        if (!asset) continue
 
-        // Tint layers that need it
-        next[layer.key] = layer.tintKey
-          ? applyColourOverlay(img, recipe.colours[layer.tintKey] ?? '#FFFFFF')
-          : img
+        try {
+          const img = await fetchImg(asset.url)
+          if (cancelled) return
+          next[layer.key] = layer.tintKey
+            ? applyColourOverlay(img, recipe.colours[layer.tintKey] ?? '#FFFFFF')
+            : img
+        } catch { continue }
       }
 
       if (!cancelled) setLayerImages(next)
@@ -116,18 +127,32 @@ export default function CompositorCanvas({ recipe, availableAssets, scale }) {
       scaleY={scale}
     >
       <Layer>
-        {LAYER_STACK.map(layer =>
-          layerImages[layer.key] ? (
+        {LAYER_STACK.map(layer => {
+          const imgs = layerImages[layer.key]
+          if (!imgs) return null
+          // Array layer (accessories) — render one KonvaImage per active accessory
+          if (Array.isArray(imgs)) {
+            return imgs.map((img, i) => (
+              <KonvaImage
+                key={`${layer.key}-${i}`}
+                image={img}
+                x={0} y={0}
+                width={CANVAS_W}
+                height={CANVAS_H}
+              />
+            ))
+          }
+          // Single-image layer
+          return (
             <KonvaImage
               key={layer.key}
-              image={layerImages[layer.key]}
-              x={0}
-              y={0}
+              image={imgs}
+              x={0} y={0}
               width={CANVAS_W}
               height={CANVAS_H}
             />
-          ) : null
-        )}
+          )
+        })}
       </Layer>
     </Stage>
   )

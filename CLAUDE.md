@@ -188,8 +188,7 @@ Colour variants handled by tinting do NOT need separate files.
 | Hair front / bangs | ~8–10 | None (transparent, required), blunt fringe, curtain fringe, wispy fringe, side-swept, micro fringe, face-framing pieces |
 | Facial hair | 6 | None, stubble, moustache, short beard, full beard, goatee |
 | Body / frame | 3 | Slim, average, broad (silhouette only) |
-| Outfit tops | 8 | Suit jacket, blazer, dress shirt, t-shirt, blouse, turtleneck, off-shoulder, formal dress top |
-| Outfit bottoms | 5 | Long skirt, short skirt, trousers, suit trousers, jeans |
+| Outfit | 5 | `outfit_shirt`, `outfit_buttonup`, `outfit_turtleneck`, `outfit_shirtpocket`, `outfit_none` |
 | Glasses | 4 | None, round frames, rectangular frames, sunglasses |
 | Card frames | 4 | Botanical, geometric, minimal, vintage |
 
@@ -227,7 +226,7 @@ Each illustration is stored in the database as a JSON recipe — NOT as a render
 }
 ```
 
-Note: `accessory` is currently a single slot (one asset from the accessories folder). Multi-accessory support (separate glasses + earrings keys) is planned for a future phase.
+Note: `accessory` is an array — multiple accessories can be active simultaneously (e.g. glasses + blush + eyelashes). Female guests automatically receive `accessories_blush` and `accessories_eyelashes` from the mapping rules. The accessory panel uses toggle behaviour (click to add/remove).
 
 This means:
 - No rendered image stored in DB — only the recipe
@@ -254,16 +253,34 @@ This means:
 - IMPORTANT: HEIC is iPhone's default format. Backend must convert HEIC → JPEG before AI analysis.
 
 ### AI photo analysis + asset suggestion
-- Uses Claude Vision API (claude-opus-4-5) to detect: skin tone, hair colour, hair
-  length, hair style, face shape, eye shape, eye colour, brow shape, nose shape,
-  mouth shape, glasses presence, facial hair style, outfit formality
-- Claude Vision can detect nearly every layer — far fewer manual flags than Google Vision
+- Uses Claude Vision API (claude-opus-4-5) to detect:
+
+| Field | Values |
+|---|---|
+| `gender` | `female` \| `male` \| `other` |
+| `hairLength` | `short` \| `medium` \| `long` |
+| `hairStyle` | `straight` \| `wavy` \| `curly` \| `bun` \| `bob` \| `slick` |
+| `hairFrontStyle` | `none` \| `fringe` \| `curtains` \| `side_part` \| `slick` \| `messy` \| `long` |
+| `faceShape` | `oval` \| `round` \| `square` \| `heart` \| `oblong` \| `diamond` |
+| `eyeShape` | `almond` \| `round` \| `monolid` \| `hooded` |
+| `eyeColour` | `black` \| `brown` \| `blue` \| `green` \| `hazel` |
+| `browShape` | `natural` \| `arched` \| `straight` \| `bushy` \| `barely-there` |
+| `noseShape` | `button` \| `straight` \| `wide` \| `curved` \| `upturned` |
+| `mouthShape` | `full` \| `thin` \| `wide` \| `neutral` |
+| `hasFacialHair` | `true` \| `false` |
+| `facialHairStyle` | `none` \| `stubble` \| `moustache` \| `short beard` \| `full beard` \| `goatee` |
+| `hasGlasses` | `true` \| `false` |
+| `outfitStyle` | `shirt` \| `buttonup` \| `turtleneck` \| `shirtpocket` \| `none` |
+| `skinTone` | hex string e.g. `#C08060` |
+| `hairColour` | hex string e.g. `#3D1F0A` |
+| `outfitColour` | hex string e.g. `#2D3561` |
+
 - Feature → asset mapping stored in `server/assetMapping.json` (not hardcoded)
 - To add new assets or change mappings: edit `assetMapping.json` — no code changes needed
 - Categories that always default (body type, frame, twinkle) are intentional — not flagged
 - Categories where Claude's value has no matching rule are flagged yellow in the compositor
-- Confidence score shown — low-confidence suggestions flagged for priority review
 - Original photo always visible alongside the illustration
+- Debug panel in compositor shows raw Claude JSON + current recipe side by side (temporary)
 - THE AI DOES NOT GENERATE ILLUSTRATIONS — it only suggests which assets to use
 
 ### Illustration compositor (Picrew-style editor)
@@ -346,7 +363,7 @@ Phases 1, 2, and 4 (upload + AI) are complete or in progress.
 - Upload at: http://localhost:5174/upload
 - Compositor at: http://localhost:5174/compositor
 
-Phase 2 is functional with 5 mock guests. Phase 4 upload → Claude Vision → compositor flow is wired and working. Phase 3 (orders + guest management) replaces `mockGuests.js` with real DB queries — not yet started.
+Phase 2 is functional with 5 mock guests. Phase 4 upload → Claude Vision → compositor flow is working end-to-end. Phase 3 (orders + guest management) replaces `mockGuests.js` with real DB queries — not yet started.
 
 ### API endpoints
 
@@ -409,7 +426,7 @@ Phase 2 is functional with 5 mock guests. Phase 4 upload → Claude Vision → c
 - Compositor state managed via `useReducer` (not external state library). History stack capped at 10 snapshots.
 - Guest progress persisted to `localStorage` keyed by guest ID, so the illustrator doesn't lose work on page refresh. Key: `mishph_compositor_v1`.
 - Vite dev proxy forwards `/api/*` and `/assets/*` to Express on port 3001. Frontend uses relative URLs — never hardcode `localhost:3001`.
-- The `accessory` recipe key is a single slot for Phase 2. Multi-accessory support (simultaneous glasses + earrings) deferred to a later phase.
+- The `accessory` recipe key is an array. Multiple accessories render simultaneously (glasses + blush + eyelashes etc). Female guests auto-receive blush + eyelashes via mapping rules. Panel uses toggle UI (click to add/remove).
 
 ---
 

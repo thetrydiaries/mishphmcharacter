@@ -51,9 +51,16 @@ function reducer(state, action) {
 
   switch (action.type) {
     case 'SWAP_ASSET': {
+      const currentValue = current.recipe.assets[action.category]
+      // Array-valued categories (accessories) toggle; all others replace
+      const newValue = Array.isArray(currentValue)
+        ? currentValue.includes(action.assetName)
+          ? currentValue.filter(n => n !== action.assetName)
+          : [...currentValue, action.assetName]
+        : action.assetName
       const newRecipe = {
         ...current.recipe,
-        assets: { ...current.recipe.assets, [action.category]: action.assetName },
+        assets: { ...current.recipe.assets, [action.category]: newValue },
       }
       return {
         ...state,

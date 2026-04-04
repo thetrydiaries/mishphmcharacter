@@ -19,7 +19,7 @@ export const MOCK_GUESTS = [
         brows: 'brow_natural',
         hair_back: 'hair_back_wavy_shoulder',
         hair_front: 'hair_front_none',
-        accessory: 'accessory_glasses_none',
+        accessory: [],
       },
       colours: {
         hair: '#3D1F0A',
@@ -48,7 +48,7 @@ export const MOCK_GUESTS = [
         brows: 'brow_natural',
         hair_back: 'hair_back_straight_short',
         hair_front: 'hair_front_none',
-        accessory: 'accessory_glasses_round',
+        accessory: ['accessories_glasses'],
       },
       colours: {
         hair: '#1A1A1A',
@@ -77,7 +77,7 @@ export const MOCK_GUESTS = [
         brows: 'brow_arched',
         hair_back: 'hair_back_curly_short',
         hair_front: 'hair_front_none',
-        accessory: 'accessory_glasses_none',
+        accessory: [],
       },
       colours: {
         hair: '#0A0806',
@@ -106,7 +106,7 @@ export const MOCK_GUESTS = [
         brows: 'brow_arched',
         hair_back: 'hair_back_straight_long',
         hair_front: 'hair_front_fringe',
-        accessory: 'accessory_glasses_none',
+        accessory: [],
       },
       colours: {
         hair: '#1A0A00',
@@ -135,7 +135,7 @@ export const MOCK_GUESTS = [
         brows: 'brow_natural',
         hair_back: 'hair_back_wavy_shoulder',
         hair_front: 'hair_front_curtains',
-        accessory: 'accessory_glasses_none',
+        accessory: [],
       },
       colours: {
         hair: '#C8843A',
