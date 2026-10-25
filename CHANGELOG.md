@@ -9,6 +9,16 @@ Format: newest first.
 
 Interrogate gate passed (Go). Why recorded in CLAUDE.md.
 
+### Phase C — Batch of 40 (planned, in progress)
+- Multi-guest state persisted to localStorage (all guests, not just one) — survives closing the browser and returning days later, on the same browser/machine
+- Batch upload: drop N photos, analysed sequentially with progress, filename → guest name, **appends** to the list (upload in batches over multiple days)
+- Small photo thumbnails stored so the reference photo survives a reload
+- Review hub (`/review`): grid of all guests — OG photo + illustration side by side, name, status badge, filter by status, bulk-approve, click to open the compositor
+- Charm size set once per order (same for all guests), 300dpi
+- Export approved as a single ZIP (`jszip`) + a contact sheet image for the cousin's review
+- Save/load the whole batch as a JSON file — portable backup against browser-data clears / machine switches (no database for a one-off wedding)
+- Decisions: same charm all guests · 300dpi · thumbnails persisted · grid review · ZIP export
+
 ### Phase A — Resurrect + unblock AI
 - Fixed dead model id `claude-sonnet-4-6` → `claude-sonnet-5` (uploads would have 404'd)
 - New `server/features.schema.js` — single source of truth for AI-detected features. Drives the system prompt, validates Claude's response, and generates the `?mock=true` payload, so enums can no longer drift
