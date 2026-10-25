@@ -96,7 +96,21 @@ app.get('/api/styles', (req, res) => {
   res.json({ styles: listStyles(), default: DEFAULT_STYLE })
 })
 
-// GET /api/assets?style=classic — character categories for a style + shared dirs, grouped by category
+// Read a style's character categories as { category: [{name,url}] }.
+function readStyleCats(style) {
+  const out = {}
+  const styleRoot = path.join(ASSETS_ROOT, style)
+  if (!fs.existsSync(styleRoot)) return out
+  for (const e of fs.readdirSync(styleRoot, { withFileTypes: true })) {
+    if (!e.isDirectory() || e.name.startsWith('.')) continue
+    out[e.name] = listPngs(path.join(styleRoot, e.name), `/assets/${style}/${e.name}`)
+  }
+  return out
+}
+
+// GET /api/assets?style=classic — character categories for a style + shared dirs.
+// Non-default styles inherit the classic set as a fallback; a same-named file in the
+// style folder overrides just that layer. So a style only needs the assets it changes.
 app.get('/api/assets', (req, res) => {
   try {
     const styles = listStyles()
@@ -107,13 +121,16 @@ app.get('/api/assets', (req, res) => {
 
     const result = {}
 
-    // Character categories live under assets/<style>/<category>/
-    const styleRoot = path.join(ASSETS_ROOT, style)
-    if (fs.existsSync(styleRoot)) {
-      for (const e of fs.readdirSync(styleRoot, { withFileTypes: true })) {
-        if (!e.isDirectory() || e.name.startsWith('.')) continue
-        result[e.name] = listPngs(path.join(styleRoot, e.name), `/assets/${style}/${e.name}`)
-      }
+    // Classic baseline (fallback) for non-default styles
+    if (style !== DEFAULT_STYLE) {
+      for (const [cat, list] of Object.entries(readStyleCats(DEFAULT_STYLE))) result[cat] = list
+    }
+
+    // Overlay the requested style — same name wins, new names are added as extra variants
+    for (const [cat, list] of Object.entries(readStyleCats(style))) {
+      const byName = new Map((result[cat] || []).map(a => [a.name, a]))
+      for (const a of list) byName.set(a.name, a)
+      result[cat] = [...byName.values()]
     }
 
     // Shared dirs (frames, backgrounds) live at the top level, same for every style

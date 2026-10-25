@@ -27,6 +27,8 @@ Interrogate gate passed (Go). Why recorded in CLAUDE.md.
 - Startup mapping check is now per-style: default style warns on missing assets, other styles report drawing progress (e.g. `ghibli: 1/51 present`)
 - Compositor: style dropdown (shown when >1 style), refetches assets on style change
 - Static serving + `/api/assets` read live from disk — dropping new PNGs in needs no restart
+- **Style fallback**: non-default styles inherit the full classic set; a same-named file in the style folder overrides just that layer. A style only needs the assets it changes (e.g. ghibli reuses classic hair until ghibli hair is drawn)
+- First ghibli assets dropped in (face/eyes/nose/mouth/brows); normalized names (stripped `sg_` prefix, lowercased `.PNG`). 6 files use variant names with no classic match (`brows_straight`, `eyes_female_*`, `mouth_default`, `nose_default`) — selectable by hand but not auto-mapped until renamed to real variants
 
 ### Phase B — Charm sizes + mockup
 - New `client/src/data/charmSizes.js` — editable acrylic-charm size presets (square 40mm case, landscape 46×32mm case). Insert mm, bleed, safe margin, dpi, corner radius all configurable. Placeholder mm pending real insert-window measurement
