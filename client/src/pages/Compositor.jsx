@@ -42,6 +42,11 @@ export default function Compositor() {
   const [availableAssets, setAvailableAssets] = useState(null)
   const [assetsError, setAssetsError] = useState(null)
   const [availableStyles, setAvailableStyles] = useState([])
+  const [assetsVersion, setAssetsVersion] = useState(0)   // bump to refetch after a bg upload/delete
+  const bgInputRef = useRef(null)
+
+  const backgrounds   = availableAssets?.backgrounds ?? []
+  const backgroundUrl = backgrounds.find(b => b.name === order.backgroundId)?.url ?? null
 
   // ── Mockup view state (not persisted — per-session view only) ────────────────
   const [anchor, setAnchor]       = useState({ scaleMult: 1, offsetYFrac: 0 })
@@ -110,14 +115,38 @@ export default function Compositor() {
   }, [])
 
   useEffect(() => {
-    // Fetch assets for the current style; refetch when style changes
+    // Fetch assets for the current style; refetch when style changes or a bg is added/removed
     let cancelled = false
     fetch(`/api/assets?style=${encodeURIComponent(style)}`)
       .then(r => r.json())
       .then(data => { if (!cancelled) setAvailableAssets(data) })
       .catch(err => { if (!cancelled) setAssetsError(err.message) })
     return () => { cancelled = true }
-  }, [style])
+  }, [style, assetsVersion])
+
+  async function uploadBackground(file) {
+    if (!file) return
+    const fd = new FormData()
+    fd.append('background', file)
+    try {
+      const res = await fetch('/api/backgrounds', { method: 'POST', body: fd })
+      if (!res.ok) throw new Error((await res.json())?.error || 'Upload failed')
+      const bg = await res.json()
+      setAssetsVersion(v => v + 1)      // refetch so the new bg appears
+      setOrder({ backgroundId: bg.name }) // select it
+    } catch (err) {
+      setAssetsError(err.message)
+    }
+  }
+
+  async function removeBackground(name) {
+    if (!window.confirm('Delete this background from the library?')) return
+    try {
+      await fetch(`/api/backgrounds/${encodeURIComponent(name)}`, { method: 'DELETE' })
+      if (order.backgroundId === name) setOrder({ backgroundId: null })
+      setAssetsVersion(v => v + 1)
+    } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     if (!workAreaRef.current) return
@@ -203,6 +232,26 @@ export default function Compositor() {
               </div>
 
               <div style={styles.controlRow}>
+                <label style={styles.controlLabel}>Backdrop</label>
+                <select
+                  value={order.backgroundId ?? ''}
+                  onChange={e => setOrder({ backgroundId: e.target.value || null })}
+                  style={styles.select}
+                >
+                  <option value="">None (plain)</option>
+                  {backgrounds.map(b => (
+                    <option key={b.name} value={b.name}>{b.name.replace(/^bg_/, '').replace(/_/g, ' ')}</option>
+                  ))}
+                </select>
+                <button style={styles.smallBtn} onClick={() => bgInputRef.current?.click()}>Upload</button>
+                {order.backgroundId && (
+                  <button style={styles.smallBtn} onClick={() => removeBackground(order.backgroundId)} title="Delete from library">✕</button>
+                )}
+                <input ref={bgInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                  onChange={e => { uploadBackground(e.target.files?.[0]); e.target.value = '' }} />
+              </div>
+
+              <div style={styles.controlRow}>
                 <label style={styles.controlLabel}>Zoom</label>
                 <input type="range" min="0.6" max="2" step="0.02"
                   value={anchor.scaleMult}
@@ -239,6 +288,7 @@ export default function Compositor() {
                 displayScale={canvasScale}
                 anchor={anchor}
                 showGuides={showGuides}
+                backgroundUrl={backgroundUrl}
                 stageRef={stageRef}
               />
             </div>
@@ -415,6 +465,17 @@ const styles = {
   slider: {
     flex: 1,
     accentColor: 'var(--accent-dark)',
+  },
+  smallBtn: {
+    fontFamily: 'var(--font-ui)',
+    fontSize: 12,
+    fontWeight: 500,
+    padding: '5px 10px',
+    borderRadius: 6,
+    border: '1px solid var(--border)',
+    background: 'var(--surface-raised)',
+    color: 'var(--text)',
+    cursor: 'pointer',
   },
   toggleLabel: {
     display: 'flex',

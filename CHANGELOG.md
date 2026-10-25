@@ -22,6 +22,14 @@ Interrogate gate passed (Go). Why recorded in CLAUDE.md.
 - Verified end-to-end (mock pipeline): 3 guests → grid → bulk approve → ZIP (3× 390×390px PNGs) → contact sheet → save → open in compositor. No errors
 - Decisions: same charm all guests · 300dpi · thumbnails persisted · grid review · ZIP export
 
+### Phase E — Backgrounds + brow tint
+- Eyebrows now tint to the hair colour (like facial hair). The brow asset must be drawn white/near-white fill for the tint to show — current `brows_thick` is dark and needs a white-fill redraw
+- **Background library**: upload a backdrop (`POST /api/backgrounds`, normalised to PNG, capped at 1600px / 10MB), stored in `/assets/backgrounds/` and served via `/api/assets`. Delete via `DELETE /api/backgrounds/:name` (name validated against traversal)
+- Background is **order-level** (one backdrop for the whole wedding, like style + charm) — `order.backgroundId`
+- Renders full-bleed behind the character (cover fit) in the Konva compositor, the review `MiniCard`, and batch export (`charmRender` / contact sheet) via a shared `drawCover`
+- Compositor gets a Backdrop row: pick from the library, upload a new one, or remove; None = plain fill
+- Verified: upload → saved to library → renders full-bleed behind character in the compositor
+
 ### Phase C — hardening (qa-review pass)
 - **Save failures are no longer silent** — a failed localStorage write (quota full, private mode) shows a red banner telling the operator to download a project backup, instead of losing work quietly
 - Persist is **debounced** (500ms) with a flush on tab hide/unload — renaming a guest no longer re-serialises the whole batch on every keystroke

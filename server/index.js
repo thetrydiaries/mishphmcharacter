@@ -91,6 +91,9 @@ app.use('/assets', express.static(ASSETS_ROOT))
 // POST /api/analyse — upload a photo, run Claude Vision, return recipe + flags
 app.use('/api/analyse', analyseRoute)
 
+// Background library — upload / list (via /api/assets) / delete
+app.use('/api/backgrounds', require('./routes/backgrounds'))
+
 // GET /api/styles — list available art styles
 app.get('/api/styles', (req, res) => {
   res.json({ styles: listStyles(), default: DEFAULT_STYLE })

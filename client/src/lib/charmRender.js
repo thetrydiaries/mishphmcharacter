@@ -45,19 +45,29 @@ export async function compositeCharacter(recipe, availableAssets) {
   return canvas
 }
 
+// Draw an image to cover a w×h box (object-fit: cover), centred.
+export function drawCover(ctx, img, w, h) {
+  const scale = Math.max(w / img.width, h / img.height)
+  const dw = img.width * scale, dh = img.height * scale
+  ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh)
+}
+
 // Render one guest's charm at true dpi, cropped to the trim box (full-bleed art to the edge).
 // Returns a PNG data URL sized widthMM×heightMM @ dpi. Uses default framing (no per-session nudge).
-export async function renderCharmPNG(recipe, availableAssets, size, { background = '#FAF3EC' } = {}) {
+export async function renderCharmPNG(recipe, availableAssets, size, { background = '#FAF3EC', backgroundUrl = null } = {}) {
   const g = charmGeometry(size)
   const character = await compositeCharacter(recipe, availableAssets)
 
-  // Full canvas (trim + bleed), background fill
+  // Full canvas (trim + bleed): background fill, then optional background image (cover)
   const full = document.createElement('canvas')
   full.width = g.fullW
   full.height = g.fullH
   const fctx = full.getContext('2d')
   fctx.fillStyle = background
   fctx.fillRect(0, 0, g.fullW, g.fullH)
+  if (backgroundUrl) {
+    try { drawCover(fctx, await loadImg(backgroundUrl), g.fullW, g.fullH) } catch { /* fall back to solid */ }
+  }
 
   // Re-anchor (same rule as CompositorCanvas)
   const isLandscape = g.trimW / g.trimH > 1.05

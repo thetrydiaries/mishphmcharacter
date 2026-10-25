@@ -20,10 +20,26 @@ export default function CompositorCanvas({
   anchor = { scaleMult: 1, offsetYFrac: 0 },
   showGuides = true,
   background = '#FAF3EC',
+  backgroundUrl = null,
   stageRef,
 }) {
   const [layerImages, setLayerImages] = useState({})
+  const [bg, setBg] = useState(null)   // { url, img } once loaded
   const imgCache = useRef({})
+
+  // Load the order's background image (if any). Keyed by url so no synchronous clear is needed.
+  useEffect(() => {
+    if (!backgroundUrl) return
+    let cancelled = false
+    const el = new Image()
+    el.crossOrigin = 'anonymous'
+    el.onload = () => { if (!cancelled) setBg({ url: backgroundUrl, img: el }) }
+    el.src = backgroundUrl
+    return () => { cancelled = true }
+  }, [backgroundUrl])
+
+  // Only use the loaded image if it matches the current url (else null = plain fill)
+  const bgImage = (backgroundUrl && bg?.url === backgroundUrl) ? bg.img : null
 
   useEffect(() => {
     if (!availableAssets) return
@@ -106,9 +122,14 @@ export default function CompositorCanvas({
       scaleX={displayScale}
       scaleY={displayScale}
     >
-      {/* Background (full bleed) */}
+      {/* Background (full bleed): solid fill, then optional background image (cover) */}
       <Layer listening={false}>
         <Rect x={0} y={0} width={fullW} height={fullH} fill={background} />
+        {bgImage && (() => {
+          const scale = Math.max(fullW / bgImage.width, fullH / bgImage.height)
+          const dw = bgImage.width * scale, dh = bgImage.height * scale
+          return <KonvaImage image={bgImage} x={(fullW - dw) / 2} y={(fullH - dh) / 2} width={dw} height={dh} />
+        })()}
       </Layer>
 
       {/* Character — clipped to the full canvas so overflow past bleed is trimmed */}

@@ -36,7 +36,7 @@ function dataURLtoBlob(dataURL) {
 
 // Export every approved guest as a print-ready PNG, bundled into one ZIP (one download —
 // browsers block firing many downloads at once). onProgress(done, total) for UI.
-export async function exportApprovedZip(guests, availableAssets, size, onProgress) {
+export async function exportApprovedZip(guests, availableAssets, size, onProgress, backgroundUrl = null) {
   const approved = guests.filter(g => g.status === 'approved')
   if (!approved.length) return { count: 0 }
 
@@ -44,7 +44,7 @@ export async function exportApprovedZip(guests, availableAssets, size, onProgres
   const used = new Set()
   for (let i = 0; i < approved.length; i++) {
     const g = approved[i]
-    const dataURL = await renderCharmPNG(g.recipe, availableAssets, size)
+    const dataURL = await renderCharmPNG(g.recipe, availableAssets, size, { backgroundUrl })
     const fname = uniqueName(`${slugify(g.name)}_${size.id}`, used)
     zip.file(`${fname}.png`, dataURL.split(',')[1], { base64: true })
     onProgress?.(i + 1, approved.length)
@@ -55,7 +55,7 @@ export async function exportApprovedZip(guests, availableAssets, size, onProgres
 }
 
 // Build a single contact-sheet image (grid of illustrations + names) to send for review.
-export async function exportContactSheet(guests, availableAssets, size, { scope = 'all' } = {}) {
+export async function exportContactSheet(guests, availableAssets, size, { scope = 'all', backgroundUrl = null } = {}) {
   const list = scope === 'approved' ? guests.filter(g => g.status === 'approved') : guests
   if (!list.length) return { count: 0 }
 
@@ -90,7 +90,7 @@ export async function exportContactSheet(guests, availableAssets, size, { scope 
     const x = col * cellW
     const y = 50 + row * cellH
 
-    const dataURL = await renderCharmPNG(guest.recipe, availableAssets, size)
+    const dataURL = await renderCharmPNG(guest.recipe, availableAssets, size, { backgroundUrl })
     const img = await new Promise((res, rej) => { const el = new Image(); el.onload = () => res(el); el.onerror = rej; el.src = dataURL })
     ctx.drawImage(img, x + pad, y + pad, cellImgW, cellImgH)
 

@@ -17,7 +17,7 @@ const BLANK_RECIPE = {
   colours: { hair: '#3D1F0A', skin: '#C08060', outfit: '#2D3561' },
 }
 
-const DEFAULT_ORDER = { charmSizeId: 'square40', styleId: 'classic' }
+const DEFAULT_ORDER = { charmSizeId: 'square40', styleId: 'classic', backgroundId: null }
 
 function newId() {
   return (crypto?.randomUUID?.() ?? `g-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)

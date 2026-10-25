@@ -24,6 +24,7 @@ export default function Review() {
   const loadFileRef = useRef(null)
 
   const size = DEFAULT_CHARM_SIZES.find(s => s.id === order.charmSizeId) ?? DEFAULT_CHARM_SIZES[0]
+  const backgroundUrl = (availableAssets?.backgrounds ?? []).find(b => b.name === order.backgroundId)?.url ?? null
 
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => setAvailableStyles(d.styles ?? [])).catch(() => {})
@@ -54,7 +55,7 @@ export default function Review() {
     if (!availableAssets) return
     setBusy('Rendering approved cards…')
     try {
-      const { count } = await exportApprovedZip(guests, availableAssets, size, (d, t) => setBusy(`Rendering ${d}/${t}…`))
+      const { count } = await exportApprovedZip(guests, availableAssets, size, (d, t) => setBusy(`Rendering ${d}/${t}…`), backgroundUrl)
       setBusy(count ? `Exported ${count} card${count === 1 ? '' : 's'} (ZIP)` : 'No approved cards to export')
     } catch (e) { setBusy('Export failed: ' + e.message) }
     setTimeout(() => setBusy(null), 2500)
@@ -64,7 +65,7 @@ export default function Review() {
     if (!availableAssets) return
     setBusy('Building contact sheet…')
     try {
-      const { count } = await exportContactSheet(guests, availableAssets, size, { scope: 'all' })
+      const { count } = await exportContactSheet(guests, availableAssets, size, { scope: 'all', backgroundUrl })
       setBusy(count ? `Contact sheet: ${count} guests` : 'No guests to export')
     } catch (e) { setBusy('Export failed: ' + e.message) }
     setTimeout(() => setBusy(null), 2500)
@@ -167,7 +168,7 @@ export default function Review() {
                 {guest.photo
                   ? <img src={guest.photo} alt={`Photo of ${guest.name}`} style={styles.photo} />
                   : <div style={styles.photoBlank}>no photo</div>}
-                <MiniCard recipe={guest.recipe} availableAssets={availableAssets} width={110} />
+                <MiniCard recipe={guest.recipe} availableAssets={availableAssets} width={110} backgroundUrl={backgroundUrl} />
               </div>
 
               <input
