@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useCompositor } from '../context/CompositorProvider'
+import { useCompositor } from '../context/compositorContext'
 import CompositorCanvas from '../components/compositor/CompositorCanvas'
 import AssetPanel from '../components/compositor/AssetPanel'
 import TopBar from '../components/compositor/TopBar'
@@ -111,11 +111,12 @@ export default function Compositor() {
 
   useEffect(() => {
     // Fetch assets for the current style; refetch when style changes
-    setAvailableAssets(null)
+    let cancelled = false
     fetch(`/api/assets?style=${encodeURIComponent(style)}`)
       .then(r => r.json())
-      .then(data => setAvailableAssets(data))
-      .catch(err => setAssetsError(err.message))
+      .then(data => { if (!cancelled) setAvailableAssets(data) })
+      .catch(err => { if (!cancelled) setAssetsError(err.message) })
+    return () => { cancelled = true }
   }, [style])
 
   useEffect(() => {

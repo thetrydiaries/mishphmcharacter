@@ -22,6 +22,16 @@ Interrogate gate passed (Go). Why recorded in CLAUDE.md.
 - Verified end-to-end (mock pipeline): 3 guests → grid → bulk approve → ZIP (3× 390×390px PNGs) → contact sheet → save → open in compositor. No errors
 - Decisions: same charm all guests · 300dpi · thumbnails persisted · grid review · ZIP export
 
+### Phase C — hardening (qa-review pass)
+- **Save failures are no longer silent** — a failed localStorage write (quota full, private mode) shows a red banner telling the operator to download a project backup, instead of losing work quietly
+- Persist is **debounced** (500ms) with a flush on tab hide/unload — renaming a guest no longer re-serialises the whole batch on every keystroke
+- **Cross-tab guard** — if the batch is edited in another tab, a banner offers to reload instead of silently overwriting
+- Context value + all actions memoized (`useCallback`/`useMemo`) — stops every consumer re-rendering and the keyboard listener re-registering on each edit
+- Upload **partial-failure recovery** — if some photos fail, the page stays on a `partial` state showing the failed list with Continue / Upload-more, instead of flashing it for 1.4s then navigating away
+- Added a **New wedding** button (clears the batch, with confirm) — was previously only possible via devtools
+- Split shared constants/tint into `components/compositor/layers.js` and the context into `context/compositorContext.js` so component files only export components
+- Lint now clean (was 7 errors); `npm run build` passes
+
 ### Phase A — Resurrect + unblock AI
 - Fixed dead model id `claude-sonnet-4-6` → `claude-sonnet-5` (uploads would have 404'd)
 - New `server/features.schema.js` — single source of truth for AI-detected features. Drives the system prompt, validates Claude's response, and generates the `?mock=true` payload, so enums can no longer drift

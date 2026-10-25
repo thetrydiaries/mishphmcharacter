@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useCompositor } from '../context/CompositorProvider'
+import { useCompositor } from '../context/compositorContext'
 
 export default function Home() {
   const { totalGuests, approvedCount, guests } = useCompositor()

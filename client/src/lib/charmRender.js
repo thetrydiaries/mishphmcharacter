@@ -2,7 +2,7 @@
 // Mirrors the re-anchor logic in CompositorCanvas (portrait/square → fit width,
 // landscape → fit height) so batch output matches what the compositor shows.
 
-import { LAYER_STACK, applyColourOverlay, ART_W, ART_H } from '../components/compositor/CompositorCanvas'
+import { LAYER_STACK, applyColourOverlay, ART_W, ART_H } from '../components/compositor/layers'
 import { charmGeometry } from '../data/charmSizes'
 
 const imgCache = {}

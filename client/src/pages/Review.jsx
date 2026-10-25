@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useCompositor } from '../context/CompositorProvider'
+import { useCompositor } from '../context/compositorContext'
 import MiniCard from '../components/compositor/MiniCard'
 import { DEFAULT_CHARM_SIZES } from '../data/charmSizes'
 import { exportApprovedZip, exportContactSheet } from '../lib/batchExport'
@@ -14,7 +14,7 @@ export default function Review() {
   const {
     order, guests, totalGuests, approvedCount,
     setCurrent, setStatusById, setName, removeGuest, setOrder,
-    loadProject, newProject,
+    loadProject, newProject, saveError, externalChange, dismissExternalChange,
   } = useCompositor()
 
   const [availableAssets, setAvailableAssets] = useState(null)
@@ -30,9 +30,12 @@ export default function Review() {
   }, [])
 
   useEffect(() => {
-    setAvailableAssets(null)
+    let cancelled = false
     fetch(`/api/assets?style=${encodeURIComponent(order.styleId)}`)
-      .then(r => r.json()).then(setAvailableAssets).catch(() => setAvailableAssets({}))
+      .then(r => r.json())
+      .then(data => { if (!cancelled) setAvailableAssets(data) })
+      .catch(() => { if (!cancelled) setAvailableAssets({}) })
+    return () => { cancelled = true }
   }, [order.styleId])
 
   const shown = guests.filter(g => filter === 'all' || g.status === filter)
@@ -79,8 +82,29 @@ export default function Review() {
     } catch (err) { setBusy(err.message); setTimeout(() => setBusy(null), 3000) }
   }
 
+  function startNewWedding() {
+    if (window.confirm('Start a new wedding? This clears the current batch from this browser. Save a project backup first if you need it.')) {
+      newProject()
+      setFilter('all')
+    }
+  }
+
   return (
     <div style={styles.page}>
+      {saveError && (
+        <div style={styles.saveErrorBar}>
+          ⚠ Couldn’t save to this browser (storage full or blocked). Recent changes live only in this tab —
+          click <strong>Save project</strong> to download a backup now.
+        </div>
+      )}
+      {externalChange && (
+        <div style={styles.externalBar}>
+          This batch was changed in another tab.{' '}
+          <button style={styles.inlineBtn} onClick={() => window.location.reload()}>Reload</button> to see the latest, or{' '}
+          <button style={styles.inlineBtn} onClick={dismissExternalChange}>dismiss</button>.
+        </div>
+      )}
+
       {/* Header */}
       <header style={styles.header}>
         <div>
@@ -123,6 +147,7 @@ export default function Review() {
           <button style={styles.btnGhost} onClick={() => saveProjectFile(order, guests)} disabled={isEmpty}>Save project</button>
           <button style={styles.btnGhost} onClick={() => loadFileRef.current?.click()}>Load project</button>
           <input ref={loadFileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleLoadFile} />
+          {!isEmpty && <button style={styles.btnGhost} onClick={startNewWedding}>New wedding</button>}
         </div>
       </div>
 
@@ -204,6 +229,9 @@ const styles = {
   btnPrimary: { fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600, padding: '7px 14px', borderRadius: 7, border: '1px solid var(--accent)', background: 'var(--accent)', color: '#fff', cursor: 'pointer' },
   btnGhost: { fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 500, padding: '7px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'none', color: 'var(--text-muted)', cursor: 'pointer' },
   busyBar: { padding: '8px 14px', background: 'var(--accent-bg)', border: '1px solid var(--accent)', borderRadius: 8, fontSize: 13, color: 'var(--accent-dark)', marginBottom: 16 },
+  saveErrorBar: { padding: '10px 14px', background: 'var(--red-bg)', border: '1px solid var(--red)', borderRadius: 8, fontSize: 13, color: 'var(--red)', marginBottom: 14, lineHeight: 1.5 },
+  externalBar: { padding: '10px 14px', background: 'var(--accent-bg)', border: '1px solid var(--accent)', borderRadius: 8, fontSize: 13, color: 'var(--accent-dark)', marginBottom: 14 },
+  inlineBtn: { fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600, color: 'var(--accent-dark)', background: 'none', border: 'none', padding: 0, textDecoration: 'underline', cursor: 'pointer' },
   emptyState: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '80px 20px', color: 'var(--text-muted)' },
   emptyText: { fontSize: 15 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 16 },

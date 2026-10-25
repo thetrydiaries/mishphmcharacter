@@ -1,4 +1,5 @@
-import { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
+import { useReducer, useEffect, useCallback, useMemo, useRef, useState } from 'react'
+import { CompositorContext } from './compositorContext'
 
 // Shared batch state for the whole app: all guests, order-level settings (charm + style),
 // and per-guest editing (undo/redo on the current guest's recipe). Persisted to localStorage
@@ -46,12 +47,15 @@ function loadState() {
   }
 }
 
+// Returns true on success, false on failure (quota exceeded, private mode, storage off).
+// The caller surfaces failures in the UI — a silent failed save loses work without warning.
 function persist({ order, guests, currentIndex }) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, order, guests, currentIndex }))
+    return true
   } catch (err) {
-    // Most likely the quota was exceeded (too many/too-large photo thumbnails)
     console.warn('[compositor] could not persist batch:', err?.message)
+    return false
   }
 }
 
@@ -178,17 +182,80 @@ function reducer(state, action) {
   }
 }
 
-// ─── Context + provider ────────────────────────────────────────────────────────
-
-const Ctx = createContext(null)
+const PERSIST_DEBOUNCE_MS = 500
 
 export function CompositorProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const { order, guests, currentIndex, history, future } = state
 
-  useEffect(() => { persist({ order, guests, currentIndex }) }, [order, guests, currentIndex])
+  // saveError: last save failed (quota/private mode) — surfaced in the UI, never silent.
+  // externalChange: another tab wrote the same key — this tab's view may be stale.
+  const [saveError, setSaveError] = useState(false)
+  const [externalChange, setExternalChange] = useState(false)
+  const selfWriteRef = useRef(false)
 
-  const value = {
+  // Debounced persist — avoids re-serialising the whole batch on every keystroke.
+  const timerRef = useRef(null)
+  const latestRef = useRef({ order, guests, currentIndex })
+
+  const flush = useCallback(() => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null }
+    selfWriteRef.current = true
+    const ok = persist(latestRef.current)
+    setSaveError(!ok)
+  }, [])
+
+  useEffect(() => {
+    latestRef.current = { order, guests, currentIndex }
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(flush, PERSIST_DEBOUNCE_MS)
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [order, guests, currentIndex, flush])
+
+  // Flush any pending write before the tab unloads so the last edit isn't lost.
+  useEffect(() => {
+    const onHide = () => { if (timerRef.current) flush() }
+    window.addEventListener('beforeunload', onHide)
+    document.addEventListener('visibilitychange', onHide)
+    return () => {
+      window.removeEventListener('beforeunload', onHide)
+      document.removeEventListener('visibilitychange', onHide)
+    }
+  }, [flush])
+
+  // Detect another tab writing the same batch — last-writer-wins would otherwise be silent.
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key !== STORAGE_KEY) return
+      if (selfWriteRef.current) { selfWriteRef.current = false; return }
+      setExternalChange(true)
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
+  // Stable action creators (dispatch is stable) so consumers/effects don't churn each render.
+  const swapAsset        = useCallback((category, assetName) => dispatch({ type: 'SWAP_ASSET', category, assetName }), [])
+  const setColour        = useCallback((colourType, hex)     => dispatch({ type: 'SET_COLOUR', colourType, hex }), [])
+  const loadFromAnalysis = useCallback((recipe, flags)       => dispatch({ type: 'LOAD_FROM_ANALYSIS', recipe, flags }), [])
+  const approve          = useCallback(() => dispatch({ type: 'SET_STATUS', status: 'approved' }), [])
+  const flagRevision     = useCallback(() => dispatch({ type: 'SET_STATUS', status: 'needs_revision' }), [])
+  const setStatusById    = useCallback((id, status) => dispatch({ type: 'SET_STATUS_BY_ID', id, status }), [])
+  const setName          = useCallback((id, name)   => dispatch({ type: 'SET_NAME', id, name }), [])
+  const reset            = useCallback(() => dispatch({ type: 'RESET' }), [])
+  const undo             = useCallback(() => dispatch({ type: 'UNDO' }), [])
+  const redo             = useCallback(() => dispatch({ type: 'REDO' }), [])
+  const prevGuest        = useCallback(() => dispatch({ type: 'NAVIGATE', delta: -1 }), [])
+  const nextGuest        = useCallback(() => dispatch({ type: 'NAVIGATE', delta: 1 }), [])
+  const setCurrent       = useCallback((index) => dispatch({ type: 'SET_CURRENT', index }), [])
+  const addGuests        = useCallback((newGuests) => dispatch({ type: 'ADD_GUESTS', guests: newGuests }), [])
+  const removeGuest      = useCallback((id) => dispatch({ type: 'REMOVE_GUEST', id }), [])
+  const setOrder         = useCallback((patch) => dispatch({ type: 'SET_ORDER', patch }), [])
+  const loadProject      = useCallback((project) => dispatch({ type: 'LOAD_PROJECT', project }), [])
+  const newProject       = useCallback(() => dispatch({ type: 'NEW_PROJECT' }), [])
+  const dismissExternalChange = useCallback(() => setExternalChange(false), [])
+
+  const value = useMemo(() => ({
     order,
     guests,
     currentGuest: guests[currentIndex],
@@ -197,32 +264,18 @@ export function CompositorProvider({ children }) {
     approvedCount: guests.filter(g => g.status === 'approved').length,
     canUndo: history.length > 0,
     canRedo: future.length > 0,
+    saveError,
+    externalChange,
+    dismissExternalChange,
+    swapAsset, setColour, loadFromAnalysis, approve, flagRevision, setStatusById,
+    setName, reset, undo, redo, prevGuest, nextGuest, setCurrent, addGuests,
+    removeGuest, setOrder, loadProject, newProject,
+  }), [
+    order, guests, currentIndex, history.length, future.length, saveError, externalChange,
+    dismissExternalChange, swapAsset, setColour, loadFromAnalysis, approve, flagRevision,
+    setStatusById, setName, reset, undo, redo, prevGuest, nextGuest, setCurrent, addGuests,
+    removeGuest, setOrder, loadProject, newProject,
+  ])
 
-    swapAsset:        (category, assetName) => dispatch({ type: 'SWAP_ASSET', category, assetName }),
-    setColour:        (colourType, hex)     => dispatch({ type: 'SET_COLOUR', colourType, hex }),
-    loadFromAnalysis: (recipe, flags)       => dispatch({ type: 'LOAD_FROM_ANALYSIS', recipe, flags }),
-    approve:          () => dispatch({ type: 'SET_STATUS', status: 'approved' }),
-    flagRevision:     () => dispatch({ type: 'SET_STATUS', status: 'needs_revision' }),
-    setStatusById:    (id, status) => dispatch({ type: 'SET_STATUS_BY_ID', id, status }),
-    setName:          (id, name)   => dispatch({ type: 'SET_NAME', id, name }),
-    reset:            () => dispatch({ type: 'RESET' }),
-    undo:             () => dispatch({ type: 'UNDO' }),
-    redo:             () => dispatch({ type: 'REDO' }),
-    prevGuest:        () => dispatch({ type: 'NAVIGATE', delta: -1 }),
-    nextGuest:        () => dispatch({ type: 'NAVIGATE', delta: 1 }),
-    setCurrent:       (index) => dispatch({ type: 'SET_CURRENT', index }),
-    addGuests:        (newGuests) => dispatch({ type: 'ADD_GUESTS', guests: newGuests }),
-    removeGuest:      (id) => dispatch({ type: 'REMOVE_GUEST', id }),
-    setOrder:         (patch) => dispatch({ type: 'SET_ORDER', patch }),
-    loadProject:      (project) => dispatch({ type: 'LOAD_PROJECT', project }),
-    newProject:       () => dispatch({ type: 'NEW_PROJECT' }),
-  }
-
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
-}
-
-export function useCompositor() {
-  const ctx = useContext(Ctx)
-  if (!ctx) throw new Error('useCompositor must be used within <CompositorProvider>')
-  return ctx
+  return <CompositorContext.Provider value={value}>{children}</CompositorContext.Provider>
 }

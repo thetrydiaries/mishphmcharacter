@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { ART_W, ART_H } from './CompositorCanvas'
+import { ART_W, ART_H } from './layers'
 import { compositeCharacter } from '../../lib/charmRender'
 
 // Lightweight illustration preview for the review grid — composites a recipe onto a

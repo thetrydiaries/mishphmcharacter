@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useCompositor } from '../context/CompositorProvider'
+import { useCompositor } from '../context/compositorContext'
 
 const ACCEPTED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.heif']
 
@@ -85,10 +85,14 @@ export default function Upload() {
     if (newGuests.length) addGuests(newGuests)
     setFailures(failed)
 
-    if (newGuests.length) {
-      // Give the state a tick to persist, then head to the review hub
+    if (newGuests.length && !failed.length) {
+      // Clean run — head straight to the review hub
       setStatus('done')
-      setTimeout(() => navigate('/review'), failed.length ? 1400 : 500)
+      setTimeout(() => navigate('/review'), 500)
+    } else if (newGuests.length) {
+      // Some succeeded, some failed — stay put so the failed list is readable
+      // and recoverable; the operator continues manually.
+      setStatus('partial')
     } else {
       setStatus('error')
     }
@@ -164,6 +168,14 @@ export default function Upload() {
               <p style={styles.hint}>Opening review…</p>
             </>
           )}
+
+          {status === 'partial' && (
+            <>
+              <span style={styles.doneIcon}>✓</span>
+              <p style={styles.dropText}>{done - failures.length} added · {failures.length} failed</p>
+              <p style={styles.hint}>Review the failed photos below — nothing was lost, you can re-add them</p>
+            </>
+          )}
         </div>
 
         {failures.length > 0 && (
@@ -173,6 +185,17 @@ export default function Upload() {
               <p key={i} style={styles.failRow}><strong>{f.name}</strong> — {f.error}</p>
             ))}
             {failures.length > 6 && <p style={styles.failRow}>…and {failures.length - 6} more</p>}
+          </div>
+        )}
+
+        {status === 'partial' && (
+          <div style={styles.partialActions}>
+            <button style={styles.reviewLink} onClick={() => navigate('/review')}>
+              Continue to review ({totalGuests}) →
+            </button>
+            <button style={styles.secondaryBtn} onClick={() => { setStatus('idle'); setFailures([]) }}>
+              Upload more
+            </button>
           </div>
         )}
 
@@ -206,4 +229,6 @@ const styles = {
   failHeading: { fontSize: 12, fontWeight: 600, color: 'var(--red)', margin: '0 0 6px' },
   failRow: { fontSize: 12, color: 'var(--text)', margin: '2px 0', lineHeight: 1.4 },
   reviewLink: { marginTop: 20, width: '100%', padding: '10px', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 600, color: 'var(--accent-dark)', background: 'var(--accent-bg)', border: '1px solid var(--accent)', borderRadius: 8, cursor: 'pointer' },
+  partialActions: { display: 'flex', flexDirection: 'column', gap: 8 },
+  secondaryBtn: { width: '100%', padding: '9px', fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 500, color: 'var(--text-muted)', background: 'none', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer' },
 }
