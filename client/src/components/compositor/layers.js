@@ -18,7 +18,7 @@ export const LAYER_STACK = [
   { key: 'mouth',      folder: 'mouth',       tintKey: null },       // z=7
   { key: 'eyes',       folder: 'eyes',        tintKey: null },       // z=8  real colour
   { key: 'twinkle',    folder: 'twinkle',     tintKey: null },       // z=9  eye shine
-  { key: 'brows',      folder: 'brows',       tintKey: null },       // z=10
+  { key: 'brows',      folder: 'brows',       tintKey: 'hair' },     // z=10 tinted to hair colour (asset must be white-fill)
   { key: 'accessory',  folder: 'accessories', tintKey: null },       // z=11 glasses/earrings (array)
   { key: 'hair_front', folder: 'hair_front',  tintKey: 'hair' },     // z=12 fringe/bangs (over face)
 ]
