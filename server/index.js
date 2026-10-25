@@ -109,8 +109,8 @@ function readStyleCats(style) {
 }
 
 // GET /api/assets?style=classic — character categories for a style + shared dirs.
-// Non-default styles inherit the classic set as a fallback; a same-named file in the
-// style folder overrides just that layer. So a style only needs the assets it changes.
+// Styles are self-contained: each serves only its own folder. A missing asset in a
+// style renders as a blank layer until it's drawn (no cross-style reuse).
 app.get('/api/assets', (req, res) => {
   try {
     const styles = listStyles()
@@ -121,17 +121,8 @@ app.get('/api/assets', (req, res) => {
 
     const result = {}
 
-    // Classic baseline (fallback) for non-default styles
-    if (style !== DEFAULT_STYLE) {
-      for (const [cat, list] of Object.entries(readStyleCats(DEFAULT_STYLE))) result[cat] = list
-    }
-
-    // Overlay the requested style — same name wins, new names are added as extra variants
-    for (const [cat, list] of Object.entries(readStyleCats(style))) {
-      const byName = new Map((result[cat] || []).map(a => [a.name, a]))
-      for (const a of list) byName.set(a.name, a)
-      result[cat] = [...byName.values()]
-    }
+    // This style's own character categories only — no fallback to another style
+    for (const [cat, list] of Object.entries(readStyleCats(style))) result[cat] = list
 
     // Shared dirs (frames, backgrounds) live at the top level, same for every style
     for (const shared of SHARED_DIRS) {

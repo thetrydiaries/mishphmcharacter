@@ -25,10 +25,10 @@ export const DEFAULT_CHARM_SIZES = [
     cornerRadiusMM: 4,
   },
   {
-    id: 'landscape46x32',
-    label: 'Landscape (46×32mm case)',
-    widthMM: 40,          // placeholder — MEASURE the inner window and update
-    heightMM: 27,         // placeholder (keeps ~46:32 ratio)
+    id: 'portrait46x32',
+    label: 'Portrait (46×32mm case)',
+    widthMM: 27,          // placeholder — 32mm case width; MEASURE the inner window and update
+    heightMM: 40,         // placeholder — 46mm case height; MEASURE the inner window and update
     bleedMM: 2,
     safeMM: 3,
     dpi: 300,
