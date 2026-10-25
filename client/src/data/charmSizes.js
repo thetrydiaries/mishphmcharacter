@@ -16,9 +16,9 @@ export const MM_PER_INCH = 25.4
 export const DEFAULT_CHARM_SIZES = [
   {
     id: 'square40',
-    label: 'Square (40mm case)',
-    widthMM: 34,          // placeholder — MEASURE the inner window and update
-    heightMM: 34,         // placeholder
+    label: 'Square (40mm charm)',
+    widthMM: 33,          // inner insert window (full charm case is 40×40mm)
+    heightMM: 33,
     bleedMM: 2,
     safeMM: 3,
     dpi: 300,
@@ -26,9 +26,9 @@ export const DEFAULT_CHARM_SIZES = [
   },
   {
     id: 'portrait46x32',
-    label: 'Portrait (46×32mm case)',
-    widthMM: 27,          // placeholder — 32mm case width; MEASURE the inner window and update
-    heightMM: 40,         // placeholder — 46mm case height; MEASURE the inner window and update
+    label: 'Portrait (46×32mm charm)',
+    widthMM: 32,          // inner insert window (full charm case is 54×40mm)
+    heightMM: 46,
     bleedMM: 2,
     safeMM: 3,
     dpi: 300,
