@@ -18,6 +18,7 @@ export default function Compositor() {
     canRedo,
     swapAsset,
     setColour,
+    setStyle,
     loadFromAnalysis,
     approve,
     flagRevision,
@@ -44,6 +45,9 @@ export default function Compositor() {
 
   const [availableAssets, setAvailableAssets] = useState(null)
   const [assetsError, setAssetsError] = useState(null)
+  const [availableStyles, setAvailableStyles] = useState([])
+
+  const style = currentGuest?.recipe?.style ?? 'classic'
 
   // ── Charm size + mockup state ───────────────────────────────────────────────
   const [sizeId, setSizeId]       = useState(DEFAULT_CHARM_SIZES[0].id)
@@ -91,12 +95,21 @@ export default function Compositor() {
   }, [geometry])
 
   useEffect(() => {
-    // Fetch available assets from backend
-    fetch('/api/assets')
+    // Fetch the list of art styles once
+    fetch('/api/styles')
+      .then(r => r.json())
+      .then(data => setAvailableStyles(data.styles ?? []))
+      .catch(() => setAvailableStyles([]))
+  }, [])
+
+  useEffect(() => {
+    // Fetch assets for the current style; refetch when style changes
+    setAvailableAssets(null)
+    fetch(`/api/assets?style=${encodeURIComponent(style)}`)
       .then(r => r.json())
       .then(data => setAvailableAssets(data))
       .catch(err => setAssetsError(err.message))
-  }, [])
+  }, [style])
 
   useEffect(() => {
     if (!workAreaRef.current) return
@@ -152,6 +165,21 @@ export default function Compositor() {
 
             {/* Charm size + mockup controls */}
             <div style={styles.charmControls}>
+              {availableStyles.length > 1 && (
+                <div style={styles.controlRow}>
+                  <label style={styles.controlLabel}>Style</label>
+                  <select
+                    value={style}
+                    onChange={e => setStyle(e.target.value)}
+                    style={styles.select}
+                  >
+                    {availableStyles.map(s => (
+                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                    ))}
+                  </select>
+                  {!availableAssets && <span style={styles.dim}>loading…</span>}
+                </div>
+              )}
               <div style={styles.controlRow}>
                 <label style={styles.controlLabel}>Charm</label>
                 <select

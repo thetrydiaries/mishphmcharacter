@@ -4,6 +4,7 @@ const STORAGE_KEY = 'mishph_compositor_v1'
 const MAX_HISTORY = 10
 
 const BLANK_RECIPE = {
+  style: 'classic',
   assets: {
     frame:      null,
     body:       null,
@@ -104,6 +105,16 @@ function reducer(state, action) {
       }
     }
 
+    case 'SET_STYLE': {
+      const newRecipe = { ...current.recipe, style: action.style }
+      return {
+        ...state,
+        guests: guests.map((g, i) => i === currentIndex ? { ...g, recipe: newRecipe } : g),
+        history: [...history.slice(-(MAX_HISTORY - 1)), current.recipe],
+        future: [],
+      }
+    }
+
     case 'SET_COLOUR': {
       const newRecipe = {
         ...current.recipe,
@@ -160,10 +171,12 @@ function reducer(state, action) {
     case 'LOAD_FROM_ANALYSIS': {
       // Replace the current guest's recipe with the AI-matched result.
       // Also stores it as aiRecipe so Reset can return to this baseline.
+      // Server recipe has no style — preserve the current style, default 'classic'.
+      const recipe = { style: current.recipe.style ?? 'classic', ...action.recipe }
       return {
         ...state,
         guests: guests.map((g, i) =>
-          i === currentIndex ? { ...g, recipe: action.recipe, aiRecipe: action.recipe } : g
+          i === currentIndex ? { ...g, recipe, aiRecipe: recipe } : g
         ),
         history: [],
         future: [],
@@ -230,6 +243,7 @@ export function useCompositor() {
 
     swapAsset:        (category, assetName) => dispatch({ type: 'SWAP_ASSET', category, assetName }),
     setColour:        (colourType, hex)     => dispatch({ type: 'SET_COLOUR', colourType, hex }),
+    setStyle:         (style)               => dispatch({ type: 'SET_STYLE', style }),
     loadFromAnalysis: (recipe)              => dispatch({ type: 'LOAD_FROM_ANALYSIS', recipe }),
     approve,
     flagRevision,

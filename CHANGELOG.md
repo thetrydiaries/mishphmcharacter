@@ -20,6 +20,14 @@ Interrogate gate passed (Go). Why recorded in CLAUDE.md.
   - Renamed misspelled asset `acessories_eyelashes.png` → `accessories_eyelashes.png`
   - Removed dead `face_heart` / `face_oblong` rules; replaced `hair_back_bob` stand-in; wired in new `hair_back_long_wavy` / `_medium` / `_short_wavy`
 
+### Phase D — Art styles (plumbing)
+- Restructured assets into `assets/<style>/<category>/` — existing hand-drawn set moved to `assets/classic/`, empty `assets/ghibli/` dirs created for drop-in. `assets/frames/` stays shared (style-agnostic)
+- `recipe.style` key added (default `classic`); asset names stay shared across styles so one mapping serves all styles
+- Server: `GET /api/styles` lists styles; `GET /api/assets?style=X` serves that style's categories + shared dirs; style param validated against real dirs (path traversal → 404)
+- Startup mapping check is now per-style: default style warns on missing assets, other styles report drawing progress (e.g. `ghibli: 1/51 present`)
+- Compositor: style dropdown (shown when >1 style), refetches assets on style change
+- Static serving + `/api/assets` read live from disk — dropping new PNGs in needs no restart
+
 ### Phase B — Charm sizes + mockup
 - New `client/src/data/charmSizes.js` — editable acrylic-charm size presets (square 40mm case, landscape 46×32mm case). Insert mm, bleed, safe margin, dpi, corner radius all configurable. Placeholder mm pending real insert-window measurement
 - Compositor canvas now renders the character re-anchored into the charm aspect ratio (no asset redraws):

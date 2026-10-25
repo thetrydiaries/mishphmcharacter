@@ -9,35 +9,73 @@ const analyseRoute = require('./routes/analyse')
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// ─── Startup check: warn if any mapping rule points at a missing asset ─────────
-// Catches silent blank layers as the asset library grows. Mapping category → folder.
+const ASSETS_ROOT = path.join(__dirname, '..', 'assets')
+
+// Top-level dirs that are shared across all art styles (not a style, not under a style).
+const SHARED_DIRS = ['frames', 'backgrounds']
+// Mapping category → folder name (categories whose folder differs from the recipe key).
 const CATEGORY_FOLDER = { frame: 'frames', accessory: 'accessories' }
+const DEFAULT_STYLE = 'classic'
+
+// List available art styles = top-level asset dirs that aren't shared dirs or hidden.
+function listStyles() {
+  if (!fs.existsSync(ASSETS_ROOT)) return []
+  return fs.readdirSync(ASSETS_ROOT, { withFileTypes: true })
+    .filter(e => e.isDirectory() && !e.name.startsWith('.') && !SHARED_DIRS.includes(e.name))
+    .map(e => e.name)
+}
+
+// List PNGs in a dir as [{ name, url }]. urlBase is the public path prefix.
+function listPngs(dir, urlBase) {
+  if (!fs.existsSync(dir)) return []
+  return fs.readdirSync(dir)
+    .filter(f => f.toLowerCase().endsWith('.png'))
+    .map(f => ({ name: path.basename(f, '.png'), url: `${urlBase}/${f}` }))
+}
+
+// ─── Startup check: warn if any mapping rule points at a missing asset ─────────
+// For the default style, missing assets are warnings (silent blank layers).
+// For other styles (still being drawn), just report progress — no noise.
 function checkMappingAgainstAssets() {
   try {
-    const assetsRoot = path.join(__dirname, '..', 'assets')
     const mapping = JSON.parse(fs.readFileSync(path.join(__dirname, 'assetMapping.json'), 'utf8'))
-    const missing = []
+
+    // All asset names the mapping can produce, grouped by folder.
+    const referencedByFolder = {}
     for (const [category, config] of Object.entries(mapping.categories)) {
       const folder = CATEGORY_FOLDER[category] || category
-      const dir = path.join(assetsRoot, folder)
-      const have = new Set(
-        (fs.existsSync(dir) ? fs.readdirSync(dir) : [])
-          .filter(f => f.toLowerCase().endsWith('.png'))
-          .map(f => path.basename(f, '.png'))
-      )
-      const referenced = [config.default, ...config.rules.map(r => r.asset)]
+      const names = [config.default, ...config.rules.map(r => r.asset)]
         .flat()
         .filter(a => typeof a === 'string')
-      for (const name of referenced) {
-        if (!have.has(name)) missing.push(`${category}: "${name}" (looked in /assets/${folder})`)
-      }
+      referencedByFolder[folder] = new Set([...(referencedByFolder[folder] || []), ...names])
     }
-    if (missing.length) {
-      console.warn(`\n[mapping-check] ${missing.length} mapping rule(s) point at missing assets:`)
-      missing.forEach(m => console.warn('  ⚠ ' + m))
-      console.warn('')
-    } else {
-      console.log('[mapping-check] all mapping rules resolve to existing assets ✓')
+
+    for (const style of listStyles()) {
+      const missing = []
+      let total = 0, present = 0
+      for (const [folder, names] of Object.entries(referencedByFolder)) {
+        // Shared folders (frames) live at top level, not under the style.
+        const dir = SHARED_DIRS.includes(folder)
+          ? path.join(ASSETS_ROOT, folder)
+          : path.join(ASSETS_ROOT, style, folder)
+        const have = new Set(listPngs(dir, '').map(a => a.name))
+        for (const name of names) {
+          total++
+          if (have.has(name)) present++
+          else missing.push(`${folder}: "${name}"`)
+        }
+      }
+      if (style === DEFAULT_STYLE) {
+        if (missing.length) {
+          console.warn(`\n[mapping-check] ${style}: ${missing.length} rule(s) point at missing assets:`)
+          missing.forEach(m => console.warn('  ⚠ ' + m))
+          console.warn('')
+        } else {
+          console.log(`[mapping-check] ${style}: all mapping rules resolve ✓`)
+        }
+      } else {
+        console.log(`[mapping-check] ${style}: ${present}/${total} referenced assets present (${total - present} not yet drawn)`)
+      }
     }
   } catch (err) {
     console.warn('[mapping-check] skipped:', err.message)
@@ -47,30 +85,43 @@ function checkMappingAgainstAssets() {
 app.use(cors())
 app.use(express.json())
 
-// Serve hand-drawn PNG assets statically
-const ASSETS_ROOT = path.join(__dirname, '..', 'assets')
+// Serve all PNG assets statically (every style + shared dirs live under /assets)
 app.use('/assets', express.static(ASSETS_ROOT))
 
 // POST /api/analyse — upload a photo, run Claude Vision, return recipe + flags
 app.use('/api/analyse', analyseRoute)
 
-// GET /api/assets — returns all assets grouped by category
+// GET /api/styles — list available art styles
+app.get('/api/styles', (req, res) => {
+  res.json({ styles: listStyles(), default: DEFAULT_STYLE })
+})
+
+// GET /api/assets?style=classic — character categories for a style + shared dirs, grouped by category
 app.get('/api/assets', (req, res) => {
   try {
-    const entries = fs.readdirSync(ASSETS_ROOT, { withFileTypes: true })
-    const categories = entries
-      .filter(e => e.isDirectory())
-      .map(e => e.name)
+    const styles = listStyles()
+    const style = req.query.style || DEFAULT_STYLE
+    if (!styles.includes(style)) {
+      return res.status(404).json({ error: `Unknown style "${style}". Available: ${styles.join(', ')}` })
+    }
 
     const result = {}
-    for (const category of categories) {
-      const catPath = path.join(ASSETS_ROOT, category)
-      const files = fs.readdirSync(catPath).filter(f => f.toLowerCase().endsWith('.png'))
-      result[category] = files.map(f => ({
-        name: path.basename(f, '.png'),
-        url: `/assets/${category}/${f}`,
-      }))
+
+    // Character categories live under assets/<style>/<category>/
+    const styleRoot = path.join(ASSETS_ROOT, style)
+    if (fs.existsSync(styleRoot)) {
+      for (const e of fs.readdirSync(styleRoot, { withFileTypes: true })) {
+        if (!e.isDirectory() || e.name.startsWith('.')) continue
+        result[e.name] = listPngs(path.join(styleRoot, e.name), `/assets/${style}/${e.name}`)
+      }
     }
+
+    // Shared dirs (frames, backgrounds) live at the top level, same for every style
+    for (const shared of SHARED_DIRS) {
+      const dir = path.join(ASSETS_ROOT, shared)
+      if (fs.existsSync(dir)) result[shared] = listPngs(dir, `/assets/${shared}`)
+    }
+
     res.json(result)
   } catch (err) {
     res.status(500).json({ error: err.message })
