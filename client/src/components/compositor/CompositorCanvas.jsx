@@ -21,6 +21,7 @@ export default function CompositorCanvas({
   showGuides = true,
   background = '#FAF3EC',
   backgroundUrl = null,
+  onBackgroundError,
   stageRef,
 }) {
   const [layerImages, setLayerImages] = useState({})
@@ -34,9 +35,10 @@ export default function CompositorCanvas({
     const el = new Image()
     el.crossOrigin = 'anonymous'
     el.onload = () => { if (!cancelled) setBg({ url: backgroundUrl, img: el }) }
+    el.onerror = () => { if (!cancelled) onBackgroundError?.(backgroundUrl) }
     el.src = backgroundUrl
     return () => { cancelled = true }
-  }, [backgroundUrl])
+  }, [backgroundUrl, onBackgroundError])
 
   // Only use the loaded image if it matches the current url (else null = plain fill)
   const bgImage = (backgroundUrl && bg?.url === backgroundUrl) ? bg.img : null

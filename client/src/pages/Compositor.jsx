@@ -48,6 +48,9 @@ export default function Compositor() {
   const backgrounds   = availableAssets?.backgrounds ?? []
   const backgroundUrl = backgrounds.find(b => b.name === order.backgroundId)?.url ?? null
 
+  // Stable (effect dep) — surface a background that fails to load instead of silent plain fill
+  const handleBgError = useCallback(() => setAssetsError('Background image failed to load — showing a plain backdrop.'), [])
+
   // ── Mockup view state (not persisted — per-session view only) ────────────────
   const [anchor, setAnchor]       = useState({ scaleMult: 1, offsetYFrac: 0 })
   const [showGuides, setShowGuides] = useState(true)
@@ -142,10 +145,13 @@ export default function Compositor() {
   async function removeBackground(name) {
     if (!window.confirm('Delete this background from the library?')) return
     try {
-      await fetch(`/api/backgrounds/${encodeURIComponent(name)}`, { method: 'DELETE' })
+      const res = await fetch(`/api/backgrounds/${encodeURIComponent(name)}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || `Delete failed (${res.status})`)
       if (order.backgroundId === name) setOrder({ backgroundId: null })
       setAssetsVersion(v => v + 1)
-    } catch { /* ignore */ }
+    } catch (err) {
+      setAssetsError(`Couldn’t delete background: ${err.message}`)
+    }
   }
 
   useEffect(() => {
@@ -289,6 +295,7 @@ export default function Compositor() {
                 anchor={anchor}
                 showGuides={showGuides}
                 backgroundUrl={backgroundUrl}
+                onBackgroundError={handleBgError}
                 stageRef={stageRef}
               />
             </div>

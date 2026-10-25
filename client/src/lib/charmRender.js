@@ -15,6 +15,9 @@ export function loadImg(url) {
     el.onerror = reject
     el.src = url
   })
+  // Don't cache failures — a transient error would otherwise break this asset
+  // for the rest of the session (every later export would silently drop it).
+  p.catch(() => { delete imgCache[url] })
   imgCache[url] = p
   return p
 }
