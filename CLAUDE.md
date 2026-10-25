@@ -351,10 +351,10 @@ This means:
 |---|---|---|
 | Phase 1 — Environment setup | Project scaffold, React app running, Supabase connected, GitHub set up | Complete |
 | Phase 2 — Compositor | Konva.js canvas, asset panel, tinting, undo/redo, card preview | Complete |
-| Phase 3 — Orders + guests | Wedding order dashboard, guest list, status tracking, notes | Not started |
-| Phase 4 — Upload + AI | Bulk upload, HEIC conversion, Claude Vision API, asset matching | In progress |
-| Phase 5 — Export | Single PNG export (Konva toDataURL), batch ZIP, PDF layout | Not started |
-| Phase 6 — Test wedding | Real 50-guest order, measure success metrics, fix blockers | Not started |
+| Phase 3 — Orders + guests | Guest list, status tracking | Done (Oct refresh — localStorage batch + review hub, NOT Supabase) |
+| Phase 4 — Upload + AI | Bulk upload, HEIC conversion, Claude Vision API, asset matching | Done |
+| Phase 5 — Export | Single PNG + batch ZIP + contact sheet (PDF A4 still later) | Done (charm-size PNGs, not 630×880) |
+| Phase 6 — Test wedding | Real 40-guest order (cousin's wedding) | Not started |
 
 ## Refresh — Oct 2026 (cousin's wedding, deadline 7 Nov 2026)
 
@@ -362,16 +362,31 @@ This means:
 
 Scope for this refresh: cheaper vision model, schema-driven mock + validation, startup mapping check, art styles (default + Ghibli, same categories, assets drawn by Shirley's sister), charm sizes (40×40mm square, 46×32mm landscape — character re-anchored per aspect ratio, NOT redrawn), charm mockup overlay (shape + keychain hole + safe zone), background upload to `/assets/backgrounds/` (folder is the database, stays offline), batch review of 40 guests + contact-sheet export, password gate + upload size limit before deploy. Cousin-facing approval web flow is OUT — deferred; cousin reviews via exported contact sheet.
 
-## Current status
+## Current status (after Oct 2026 refresh)
 
-Phases 1, 2, and 4 (upload + AI) are complete or in progress.
+Full batch flow working end-to-end: Upload → Review hub → Compositor → Export. Committed to `main` (GitHub: thetrydiaries/mishphmcharacter). Runs locally; not deployed.
 
 - Backend: `cd server && npm start` → localhost:3001
 - Frontend: `cd client && npm run dev` → localhost:5174
-- Upload at: http://localhost:5174/upload
-- Compositor at: http://localhost:5174/compositor
+- Upload (batch): http://localhost:5174/upload  ·  Review hub: /review  ·  Compositor: /compositor
 
-Phase 2 is functional with 5 mock guests. Phase 4 upload → Claude Vision → compositor flow is working end-to-end. Phase 3 (orders + guest management) replaces `mockGuests.js` with real DB queries — not yet started.
+### What exists now (changed by the refresh — read this over the older spec above)
+- **State**: shared React context (`client/src/context/CompositorProvider.jsx` + `compositorContext.js`), persisted to `localStorage` key `mishph_batch_v2`. No Supabase. Save/Load whole batch as JSON (`lib/projectFile.js`).
+- **Order-level settings** (`order`): one `styleId`, one `charmSizeId`, one `backgroundId` for the WHOLE wedding — not per guest. Set in the compositor or review header.
+- **Styles**: `assets/<style>/<category>/` — `classic` (original set) + `ghibli`. Self-contained per style (no cross-style fallback). Shared `assetMapping.json`, so every style's filenames must match the mapping targets. Served by `GET /api/assets?style=X`, listed by `GET /api/styles`.
+- **Charm sizes** (`client/src/data/charmSizes.js`, editable): square 33×33mm (40mm case), portrait 32×46mm (54×40mm case). Character re-anchored per aspect (portrait/square fit-width, landscape fit-height). Export crops to trim at 300dpi. Mockup overlay = bleed/cut/safe/keychain guides.
+- **Backgrounds**: upload via compositor Backdrop row → `POST /api/backgrounds` → stored in `assets/backgrounds/`, served via `/api/assets`. Order-level, renders full-bleed behind character. Delete via `DELETE /api/backgrounds/:name`.
+- **Export**: single PNG (Konva in compositor) + batch ZIP of approved + contact-sheet PNG (`lib/batchExport.js`, uses `lib/charmRender.js` plain-canvas composite). Guest name/date NOT yet overlaid (do in Canva downstream for now).
+- **Render internals**: shared layer stack + tint in `components/compositor/layers.js`; `MiniCard.jsx` = review-grid preview.
+
+### Outstanding
+- **`brows_thick` needs a white-fill redraw** (sister) — brows now tint to hair colour but the current dark asset blocks the tint.
+- Ghibli set partially drawn (~15/51); 6 files use variant names with no mapping target (need renaming to real variants).
+- Phase F (UI polish) + Phase G (security gate: password + CORS) — only needed before going online.
+- Guest name/wedding-date overlay at export time — not built (Canva for now).
+
+### Deploy note (do NOT deploy to Vercel serverless as-is)
+File-write endpoints (background uploads) need a persistent disk; Vercel serverless FS is ephemeral. No auth yet → a public URL would expose `ANTHROPIC_API_KEY`. For an online portfolio demo later: do Phase G first, host the backend on Railway/Render (persistent disk) or move storage to Supabase. NOTE: a separate project `photobooth-character` IS on Vercel (bhotopooth.vercel.app) — that is NOT this repo.
 
 ### API endpoints
 
