@@ -11,7 +11,8 @@ export const CANVAS_H = ART_H
 // ─── Layer stack: bottom to top ──────────────────────────────────────────────
 // 'frame' is intentionally excluded here — the portrait card frame doesn't fit a
 // charm aspect ratio. The charm background is a solid fill (uploaded backgrounds: Phase E).
-const LAYER_STACK = [
+// Exported so the review-grid MiniCard can composite the same stack on a plain canvas.
+export const LAYER_STACK = [
   { key: 'hair_back',  folder: 'hair_back',   tintKey: 'hair' },     // z=1  hair bulk/length (behind head)
   { key: 'body',       folder: 'body',        tintKey: 'skin' },     // z=2  body silhouette (skin tone)
   { key: 'face',       folder: 'face',        tintKey: 'skin' },     // z=3  face shape (skin tone)
@@ -29,7 +30,7 @@ const LAYER_STACK = [
 // ─── Colour overlay tint ──────────────────────────────────────────────────────
 // Assets drawn with white/near-white fills + pure black outlines.
 //   tint × white = tint exactly   ·   tint × black = black (outlines stay crisp)
-function applyColourOverlay(img, tintHex) {
+export function applyColourOverlay(img, tintHex) {
   const canvas = document.createElement('canvas')
   canvas.width = ART_W
   canvas.height = ART_H

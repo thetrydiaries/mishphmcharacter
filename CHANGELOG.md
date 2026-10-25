@@ -9,14 +9,17 @@ Format: newest first.
 
 Interrogate gate passed (Go). Why recorded in CLAUDE.md.
 
-### Phase C — Batch of 40 (planned, in progress)
-- Multi-guest state persisted to localStorage (all guests, not just one) — survives closing the browser and returning days later, on the same browser/machine
-- Batch upload: drop N photos, analysed sequentially with progress, filename → guest name, **appends** to the list (upload in batches over multiple days)
-- Small photo thumbnails stored so the reference photo survives a reload
-- Review hub (`/review`): grid of all guests — OG photo + illustration side by side, name, status badge, filter by status, bulk-approve, click to open the compositor
-- Charm size set once per order (same for all guests), 300dpi
-- Export approved as a single ZIP (`jszip`) + a contact sheet image for the cousin's review
+### Phase C — Batch of 40 (built)
+- Shared batch state lifted into a React context (`CompositorProvider`) so Upload → Review → Compositor share one guest list; persisted to localStorage (survives closing the browser and returning days later, same browser/machine)
+- **Order-level style + charm** — set once for the whole wedding (not per guest); the per-guest `recipe.style` was removed
+- Batch upload: drop N photos, analysed sequentially with progress, filename → guest name (`sarah_jones.jpg` → "Sarah Jones"), **appends** to the list. `?mock=true` on the upload URL tests the pipeline without spending Claude calls
+- Server returns a small reference thumbnail with each analysis (works for HEIC too) — stored per guest so it survives reload
+- Review hub (`/review`): grid of all guests — OG photo + live illustration (lightweight plain-canvas `MiniCard`, not 40 Konva stages) side by side, editable name, status badge, AI-flag count, filter by status, bulk-approve, remove, click to open the compositor
+- Shared `charmRender` util composites a recipe at charm resolution for batch export (mirrors the compositor's re-anchor); `MiniCard` reuses it
+- Export approved as a single ZIP (`jszip`) + a contact-sheet PNG (grid + names) for the cousin's review
 - Save/load the whole batch as a JSON file — portable backup against browser-data clears / machine switches (no database for a one-off wedding)
+- Compositor: "All guests" link back to the hub; keyboard shortcuts moved to the page
+- Verified end-to-end (mock pipeline): 3 guests → grid → bulk approve → ZIP (3× 390×390px PNGs) → contact sheet → save → open in compositor. No errors
 - Decisions: same charm all guests · 300dpi · thumbnails persisted · grid review · ZIP export
 
 ### Phase A — Resurrect + unblock AI

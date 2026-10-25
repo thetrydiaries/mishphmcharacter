@@ -1,16 +1,23 @@
-export default function BottomBar({ currentIndex, totalGuests, onPrev, onNext }) {
+export default function BottomBar({ currentIndex, totalGuests, onPrev, onNext, onBackToReview }) {
   const current = currentIndex + 1
 
   return (
     <footer style={styles.bar}>
-      <button
-        style={{ ...styles.navBtn, ...(currentIndex === 0 ? styles.navBtnDisabled : {}) }}
-        onClick={onPrev}
-        disabled={currentIndex === 0}
-        title="Previous guest (←)"
-      >
-        ← Previous
-      </button>
+      <div style={styles.group}>
+        {onBackToReview && (
+          <button style={styles.reviewBtn} onClick={onBackToReview} title="Back to all guests">
+            ⊞ All guests
+          </button>
+        )}
+        <button
+          style={{ ...styles.navBtn, ...(currentIndex === 0 ? styles.navBtnDisabled : {}) }}
+          onClick={onPrev}
+          disabled={currentIndex === 0}
+          title="Previous guest (←)"
+        >
+          ← Previous
+        </button>
+      </div>
 
       <span style={styles.counter}>
         <span style={styles.counterCurrent}>{current}</span>
@@ -44,6 +51,11 @@ const styles = {
     borderTop: '1px solid var(--border)',
     flexShrink: 0,
   },
+  group: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
   navBtn: {
     fontFamily: 'var(--font-ui)',
     fontSize: 13,
@@ -55,6 +67,17 @@ const styles = {
     color: 'var(--text)',
     cursor: 'pointer',
     transition: 'background 0.12s',
+  },
+  reviewBtn: {
+    fontFamily: 'var(--font-ui)',
+    fontSize: 13,
+    fontWeight: 600,
+    padding: '6px 14px',
+    borderRadius: 6,
+    border: '1px solid var(--accent)',
+    background: 'var(--accent-bg)',
+    color: 'var(--accent-dark)',
+    cursor: 'pointer',
   },
   navBtnDisabled: {
     opacity: 0.35,

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
-import { useCompositor } from '../hooks/useCompositor'
+import { useNavigate } from 'react-router-dom'
+import { useCompositor } from '../context/CompositorProvider'
 import CompositorCanvas from '../components/compositor/CompositorCanvas'
 import AssetPanel from '../components/compositor/AssetPanel'
 import TopBar from '../components/compositor/TopBar'
@@ -8,9 +8,10 @@ import BottomBar from '../components/compositor/BottomBar'
 import { DEFAULT_CHARM_SIZES, charmGeometry } from '../data/charmSizes'
 
 export default function Compositor() {
-  const location   = useLocation()
-  const compositor = useCompositor()
+  const navigate   = useNavigate()
   const {
+    order,
+    setOrder,
     currentGuest,
     currentIndex,
     totalGuests,
@@ -18,8 +19,6 @@ export default function Compositor() {
     canRedo,
     swapAsset,
     setColour,
-    setStyle,
-    loadFromAnalysis,
     approve,
     flagRevision,
     reset,
@@ -27,19 +26,16 @@ export default function Compositor() {
     redo,
     prevGuest,
     nextGuest,
-  } = compositor
+  } = useCompositor()
 
-  // If navigated from /upload, load the AI-matched recipe into the current guest slot
-  useEffect(() => {
-    if (location.state?.recipe) {
-      loadFromAnalysis(location.state.recipe)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // Order-level: one style + one charm size for the whole wedding
+  const style = order.styleId
+  const size  = DEFAULT_CHARM_SIZES.find(s => s.id === order.charmSizeId) ?? DEFAULT_CHARM_SIZES[0]
 
-  // Flags, photo URL, and raw AI features survive only for this compositor session
-  const flags            = location.state?.flags            ?? []
-  const photoURL         = location.state?.photoURL         ?? currentGuest?.photo ?? null
-  const detectedFeatures = location.state?.detectedFeatures ?? null
+  // Reference photo + AI flags come from the current guest in the batch
+  const photoURL         = currentGuest?.photo ?? null
+  const flags            = currentGuest?.flags ?? []
+  const detectedFeatures = null
 
   const [debugOpen, setDebugOpen] = useState(false)
 
@@ -47,15 +43,26 @@ export default function Compositor() {
   const [assetsError, setAssetsError] = useState(null)
   const [availableStyles, setAvailableStyles] = useState([])
 
-  const style = currentGuest?.recipe?.style ?? 'classic'
-
-  // ── Charm size + mockup state ───────────────────────────────────────────────
-  const [sizeId, setSizeId]       = useState(DEFAULT_CHARM_SIZES[0].id)
+  // ── Mockup view state (not persisted — per-session view only) ────────────────
   const [anchor, setAnchor]       = useState({ scaleMult: 1, offsetYFrac: 0 })
   const [showGuides, setShowGuides] = useState(true)
 
-  const size     = DEFAULT_CHARM_SIZES.find(s => s.id === sizeId) ?? DEFAULT_CHARM_SIZES[0]
   const geometry = useMemo(() => charmGeometry(size), [size])
+
+  // Keyboard shortcuts (compositor page only): ←/→ nav, A approve, R revision, undo/redo
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); prevGuest() }
+      if (e.key === 'ArrowRight') { e.preventDefault(); nextGuest() }
+      if (e.key === 'a' || e.key === 'A') approve()
+      if (e.key === 'r' || e.key === 'R') flagRevision()
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo() }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [prevGuest, nextGuest, approve, flagRevision, undo, redo])
 
   // Canvas scale: fit the charm canvas into the available space
   const [canvasScale, setCanvasScale] = useState(0.5)
@@ -170,7 +177,7 @@ export default function Compositor() {
                   <label style={styles.controlLabel}>Style</label>
                   <select
                     value={style}
-                    onChange={e => setStyle(e.target.value)}
+                    onChange={e => setOrder({ styleId: e.target.value })}
                     style={styles.select}
                   >
                     {availableStyles.map(s => (
@@ -183,8 +190,8 @@ export default function Compositor() {
               <div style={styles.controlRow}>
                 <label style={styles.controlLabel}>Charm</label>
                 <select
-                  value={sizeId}
-                  onChange={e => setSizeId(e.target.value)}
+                  value={order.charmSizeId}
+                  onChange={e => setOrder({ charmSizeId: e.target.value })}
                   style={styles.select}
                 >
                   {DEFAULT_CHARM_SIZES.map(s => (
@@ -259,6 +266,7 @@ export default function Compositor() {
         totalGuests={totalGuests}
         onPrev={prevGuest}
         onNext={nextGuest}
+        onBackToReview={() => navigate('/review')}
       />
 
       {/* ── DEBUG PANEL (temporary) ───────────────────────────────────────────── */}

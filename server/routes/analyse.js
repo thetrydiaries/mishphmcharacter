@@ -41,6 +41,16 @@ router.post('/', upload.single('photo'), async (req, res) => {
 
     let warnings = []
 
+    // Small reference thumbnail (works for HEIC too — server decodes it) for the review grid
+    let thumbnail = null
+    try {
+      const thumbBuf = await sharp(req.file.buffer)
+        .resize({ width: 240, height: 240, fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 70 })
+        .toBuffer()
+      thumbnail = `data:image/jpeg;base64,${thumbBuf.toString('base64')}`
+    } catch { /* non-fatal — grid just shows no photo */ }
+
     if (req.query.mock === 'true') {
       // ── Mock mode — pass ?mock=true to skip the Claude API call ──────────────
       console.log('[analyse] MOCK MODE — skipping Claude API call')
@@ -126,7 +136,7 @@ router.post('/', upload.single('photo'), async (req, res) => {
       },
     }
 
-    res.json({ recipe, flags, detectedFeatures: features, validationWarnings: warnings })
+    res.json({ recipe, flags, detectedFeatures: features, validationWarnings: warnings, thumbnail })
   } catch (err) {
     console.error('[analyse] ERROR:', err.message)
     if (err.cause) console.error('[analyse] CAUSE:', err.cause)
