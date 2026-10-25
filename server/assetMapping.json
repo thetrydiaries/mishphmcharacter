@@ -3,16 +3,17 @@
   "_comment": "Rules evaluate top-to-bottom per category; first full match wins. If no rule matches and the rules array is non-empty, 'default' is used and the layer is added to the flags list (yellow in AssetPanel). Empty rules = intentional default, never flagged.",
   "categories": {
     "hair_back": {
-      "_comment": "Stand-ins used where asset not yet drawn: wavy/curly long → hair_back_straight_long, medium → hair_back_straight_long, curly short → hair_back_short.",
+      "_comment": "Stand-ins where asset not yet drawn: bob → hair_back_medium, long curly → hair_back_long_wavy, short curly → hair_back_short_wavy.",
       "default": "hair_back_short",
       "rules": [
         { "conditions": { "hairStyle": "bun" },                                   "asset": "hair_back_buns" },
-        { "conditions": { "hairStyle": "bob" },                                   "asset": "hair_back_bob" },
-        { "conditions": { "hairLength": "long",   "hairStyle": "curly" },         "asset": "hair_back_straight_long" },
-        { "conditions": { "hairLength": "long",   "hairStyle": "wavy" },          "asset": "hair_back_straight_long" },
+        { "conditions": { "hairStyle": "bob" },                                   "asset": "hair_back_medium" },
+        { "conditions": { "hairLength": "long",   "hairStyle": "curly" },         "asset": "hair_back_long_wavy" },
+        { "conditions": { "hairLength": "long",   "hairStyle": "wavy" },          "asset": "hair_back_long_wavy" },
         { "conditions": { "hairLength": "long" },                                 "asset": "hair_back_straight_long" },
-        { "conditions": { "hairLength": "medium" },                               "asset": "hair_back_straight_long" },
-        { "conditions": { "hairLength": "short",  "hairStyle": "curly" },         "asset": "hair_back_short" },
+        { "conditions": { "hairLength": "medium" },                               "asset": "hair_back_medium" },
+        { "conditions": { "hairLength": "short",  "hairStyle": "curly" },         "asset": "hair_back_short_wavy" },
+        { "conditions": { "hairLength": "short",  "hairStyle": "wavy" },          "asset": "hair_back_short_wavy" },
         { "conditions": { "hairLength": "short" },                                "asset": "hair_back_short" }
       ]
     },
@@ -34,8 +35,6 @@
         { "conditions": { "faceShape": "oval" },    "asset": "face_oval" },
         { "conditions": { "faceShape": "round" },   "asset": "face_round" },
         { "conditions": { "faceShape": "square" },  "asset": "face_square" },
-        { "conditions": { "faceShape": "heart" },   "asset": "face_heart" },
-        { "conditions": { "faceShape": "oblong" },  "asset": "face_oblong" },
         { "conditions": { "faceShape": "diamond" }, "asset": "face_diamond" }
       ]
     },
@@ -112,13 +111,13 @@
       ]
     },
     "brows": {
-      "default": "brow_natural",
+      "default": "brows_thin",
       "rules": [
-        { "conditions": { "browShape": "natural" },      "asset": "brow_natural" },
-        { "conditions": { "browShape": "arched" },       "asset": "brow_arched" },
+        { "conditions": { "browShape": "natural" },      "asset": "brows_thin" },
+        { "conditions": { "browShape": "arched" },       "asset": "brows_curved" },
         { "conditions": { "browShape": "straight" },     "asset": "brows_thick" },
         { "conditions": { "browShape": "bushy" },        "asset": "brows_thick" },
-        { "conditions": { "browShape": "barely-there" }, "asset": "brows_thin" }
+        { "conditions": { "browShape": "barely-there" }, "asset": "brows_dot" }
       ]
     },
     "twinkle": {

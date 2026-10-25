@@ -5,6 +5,37 @@ Format: newest first.
 
 ---
 
+## [Refresh] — 2026-10-25 — Cousin's wedding (deadline 7 Nov 2026)
+
+Interrogate gate passed (Go). Why recorded in CLAUDE.md.
+
+### Phase A — Resurrect + unblock AI
+- Fixed dead model id `claude-sonnet-4-6` → `claude-sonnet-5` (uploads would have 404'd)
+- New `server/features.schema.js` — single source of truth for AI-detected features. Drives the system prompt, validates Claude's response, and generates the `?mock=true` payload, so enums can no longer drift
+- Response validation: invalid/missing feature values coerce to a safe default and are reported in `validationWarnings` instead of silently blanking a layer
+- Capped upload size at 10MB (`multer` limit) — closed an unbounded-memory DoS hole
+- Startup mapping check in `server/index.js` — warns for any `assetMapping.json` rule pointing at a missing PNG; prints a clean ✓ when all resolve
+- Fixed 9 missing-asset mappings caught by the check:
+  - `brows` default pointed at non-existent `brow_natural` — every guest rendered with no eyebrows. Remapped to real `brows_*` files
+  - Renamed misspelled asset `acessories_eyelashes.png` → `accessories_eyelashes.png`
+  - Removed dead `face_heart` / `face_oblong` rules; replaced `hair_back_bob` stand-in; wired in new `hair_back_long_wavy` / `_medium` / `_short_wavy`
+
+### Phase B — Charm sizes + mockup
+- New `client/src/data/charmSizes.js` — editable acrylic-charm size presets (square 40mm case, landscape 46×32mm case). Insert mm, bleed, safe margin, dpi, corner radius all configurable. Placeholder mm pending real insert-window measurement
+- Compositor canvas now renders the character re-anchored into the charm aspect ratio (no asset redraws):
+  - portrait / square charm → fit to width (head + shoulders, torso crops)
+  - landscape charm → fit to height (face centred, side margins for a name)
+- Mockup overlay guides: bleed edge, cut line (with charm corner radius), safe zone, keychain-hole indicator. Toggle on/off
+- Charm controls in the compositor: size dropdown, zoom slider, vertical-nudge slider
+- Export reworked: crops to the trim box, renders at the charm's true dpi, auto-hides guides. Verified square exports at 402×402px (34mm @ 300dpi). Files named `name_sizeid.png`
+- `CANVAS_W` / `CANVAS_H` kept as back-compat aliases of new `ART_W` / `ART_H`
+
+### Deferred (out of this refresh)
+- Cousin-facing approval web app → cousin reviews via exported contact sheet instead
+- Supabase DB → localStorage is enough for 40 guests
+
+---
+
 ## [Unreleased] — Phase 5 planned
 - Single PNG export via Konva `stage.toDataURL()` — Export button in TopBar, browser download named after guest
 - Batch ZIP export of all approved cards

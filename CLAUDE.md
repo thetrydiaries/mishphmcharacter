@@ -356,6 +356,12 @@ This means:
 | Phase 5 — Export | Single PNG export (Konva toDataURL), batch ZIP, PDF layout | Not started |
 | Phase 6 — Test wedding | Real 50-guest order, measure success metrics, fix blockers | Not started |
 
+## Refresh — Oct 2026 (cousin's wedding, deadline 7 Nov 2026)
+
+**Why (interrogate gate, passed Go):** Refresh the compositor into a tool that AI-assembles 40 guest portraits and previews them at real acrylic-charm sizes — a gift for Shirley's cousin's wedding and a portfolio piece showing tech as her love language.
+
+Scope for this refresh: cheaper vision model, schema-driven mock + validation, startup mapping check, art styles (default + Ghibli, same categories, assets drawn by Shirley's sister), charm sizes (40×40mm square, 46×32mm landscape — character re-anchored per aspect ratio, NOT redrawn), charm mockup overlay (shape + keychain hole + safe zone), background upload to `/assets/backgrounds/` (folder is the database, stays offline), batch review of 40 guests + contact-sheet export, password gate + upload size limit before deploy. Cousin-facing approval web flow is OUT — deferred; cousin reviews via exported contact sheet.
+
 ## Current status
 
 Phases 1, 2, and 4 (upload + AI) are complete or in progress.

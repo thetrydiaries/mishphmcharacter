@@ -4,59 +4,18 @@ const multer = require('multer')
 const sharp = require('sharp')
 const fs = require('fs')
 const path = require('path')
+const { buildSystemPrompt, validateFeatures, buildMockFeatures } = require('../features.schema')
 
-const upload = multer({ storage: multer.memoryStorage() })
+// Cap upload size — unbounded memoryStorage is a memory-DoS risk.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
 
 // Load mapping config once at startup — edit assetMapping.json to update rules without touching code
 const MAPPING = JSON.parse(
   fs.readFileSync(path.join(__dirname, '..', 'assetMapping.json'), 'utf8')
 )
 
-const SYSTEM_PROMPT = `You are analysing a photo of a wedding guest to match them to illustrated character assets.
-Look carefully at the person and return ONLY a valid JSON object with these exact fields — no explanation, no markdown, just the raw JSON:
-
-{
-  "gender": "female" | "male" | "other",
-  "hairLength": "short" | "medium" | "long",
-  "hairStyle": "straight" | "wavy" | "curly" | "bun" | "bob" | "slick",
-  "hairFrontStyle": "none" | "fringe" | "curtains" | "side_part" | "slick" | "messy" | "long",
-  "faceShape": "oval" | "round" | "square" | "diamond",
-  "eyeShape": "almond" | "round" | "monolid" | "hooded",
-  "eyeColour": "black" | "brown" | "blue" | "green",
-  "browShape": "natural" | "arched" | "straight" | "bushy" | "barely-there",
-  "noseShape": "button" | "straight" | "wide" | "curved" | "upturned",
-  "mouthShape": "full" | "thin" | "wide" | "neutral",
-  "hasFacialHair": true | false,
-  "facialHairStyle": "none" | "stubble" | "moustache" | "short beard" | "full beard" | "goatee",
-  "hasGlasses": true | false,
-  "outfitStyle": "shirt" | "buttonup" | "turtleneck" | "shirtpocket" | "none",
-  "skinTone": "<hex colour string that best matches their skin, e.g. #C08060>",
-  "hairColour": "<hex colour string that best matches their hair, e.g. #3D1F0A>",
-  "outfitColour": "<hex colour string that best matches their visible clothing, e.g. #2D3561>"
-}
-
-If you cannot determine a value confidently, pick the closest match — never return null.`
-
-// ─── Mock features (?mock=true query param) ───────────────────────────────────
-const MOCK_FEATURES = {
-  gender:          'female',
-  hairLength:      'long',
-  hairStyle:       'short',
-  hairFrontStyle:  'curtains',
-  faceShape:       'diamond',
-  eyeShape:        'hooded',
-  eyeColour:       'blue',
-  browShape:       'thick',
-  noseShape:       'button',
-  mouthShape:      'smile',
-  hasFacialHair:   false,
-  facialHairStyle: 'none',
-  hasGlasses:      false,
-  outfitStyle:     'shirtpocket',
-  skinTone:        '#E8B89D',
-  hairColour:      '#8B5A2B',
-  outfitColour:    '#2D3561',
-}
+// Prompt + mock are derived from features.schema.js so they can never drift from the enums.
+const SYSTEM_PROMPT = buildSystemPrompt()
 
 // Walk one category's rules. Returns { asset, flagged }.
 // flagged=true only when there were rules to try but none matched (unexpected feature value).
@@ -80,10 +39,12 @@ router.post('/', upload.single('photo'), async (req, res) => {
 
     let features
 
+    let warnings = []
+
     if (req.query.mock === 'true') {
       // ── Mock mode — pass ?mock=true to skip the Claude API call ──────────────
       console.log('[analyse] MOCK MODE — skipping Claude API call')
-      features = MOCK_FEATURES
+      features = buildMockFeatures()
     } else {
       // ── Convert image and call Claude Vision ────────────────────────────────
       console.log('[analyse] received file:', req.file.originalname, req.file.mimetype, req.file.size, 'bytes')
@@ -107,7 +68,7 @@ router.post('/', upload.single('photo'), async (req, res) => {
           'content-type':      'application/json',
         },
         body: JSON.stringify({
-          model:      'claude-sonnet-4-6',
+          model:      'claude-sonnet-5',
           max_tokens: 1024,
           system:     SYSTEM_PROMPT,
           messages: [
@@ -138,7 +99,12 @@ router.post('/', upload.single('photo'), async (req, res) => {
         .replace(/^```(?:json)?\s*/i, '')
         .replace(/\s*```$/,           '')
 
-      features = JSON.parse(rawText)
+      const parsed = JSON.parse(rawText)
+      // Coerce to valid enum/boolean/hex values; collect any corrections
+      const result = validateFeatures(parsed)
+      features = result.features
+      warnings = result.warnings
+      if (warnings.length) console.warn('[analyse] feature validation warnings:', warnings)
     }
 
     // ── Apply asset mapping rules ─────────────────────────────────────────────
@@ -160,7 +126,7 @@ router.post('/', upload.single('photo'), async (req, res) => {
       },
     }
 
-    res.json({ recipe, flags, detectedFeatures: features })
+    res.json({ recipe, flags, detectedFeatures: features, validationWarnings: warnings })
   } catch (err) {
     console.error('[analyse] ERROR:', err.message)
     if (err.cause) console.error('[analyse] CAUSE:', err.cause)

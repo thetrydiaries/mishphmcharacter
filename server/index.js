@@ -9,6 +9,41 @@ const analyseRoute = require('./routes/analyse')
 const app = express()
 const PORT = process.env.PORT || 3001
 
+// ─── Startup check: warn if any mapping rule points at a missing asset ─────────
+// Catches silent blank layers as the asset library grows. Mapping category → folder.
+const CATEGORY_FOLDER = { frame: 'frames', accessory: 'accessories' }
+function checkMappingAgainstAssets() {
+  try {
+    const assetsRoot = path.join(__dirname, '..', 'assets')
+    const mapping = JSON.parse(fs.readFileSync(path.join(__dirname, 'assetMapping.json'), 'utf8'))
+    const missing = []
+    for (const [category, config] of Object.entries(mapping.categories)) {
+      const folder = CATEGORY_FOLDER[category] || category
+      const dir = path.join(assetsRoot, folder)
+      const have = new Set(
+        (fs.existsSync(dir) ? fs.readdirSync(dir) : [])
+          .filter(f => f.toLowerCase().endsWith('.png'))
+          .map(f => path.basename(f, '.png'))
+      )
+      const referenced = [config.default, ...config.rules.map(r => r.asset)]
+        .flat()
+        .filter(a => typeof a === 'string')
+      for (const name of referenced) {
+        if (!have.has(name)) missing.push(`${category}: "${name}" (looked in /assets/${folder})`)
+      }
+    }
+    if (missing.length) {
+      console.warn(`\n[mapping-check] ${missing.length} mapping rule(s) point at missing assets:`)
+      missing.forEach(m => console.warn('  ⚠ ' + m))
+      console.warn('')
+    } else {
+      console.log('[mapping-check] all mapping rules resolve to existing assets ✓')
+    }
+  } catch (err) {
+    console.warn('[mapping-check] skipped:', err.message)
+  }
+}
+
 app.use(cors())
 app.use(express.json())
 
@@ -56,4 +91,5 @@ app.get('/health/db', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
+  checkMappingAgainstAssets()
 })
