@@ -2,7 +2,7 @@
 // Mirrors the re-anchor logic in CompositorCanvas (portrait/square → fit width,
 // landscape → fit height) so batch output matches what the compositor shows.
 
-import { LAYER_STACK, applyColourOverlay, ART_W, ART_H } from '../components/compositor/layers'
+import { LAYER_STACK, applyColourOverlay, resolveTint, ART_W, ART_H } from '../components/compositor/layers'
 import { charmGeometry } from '../data/charmSizes'
 
 const imgCache = {}
@@ -32,18 +32,21 @@ export async function compositeCharacter(recipe, availableAssets) {
   for (const layer of LAYER_STACK) {
     const val = recipe.assets[layer.key]
     const names = Array.isArray(val) ? val : (val ? [val] : [])
+    ctx.globalAlpha = recipe.opacities?.[layer.key] ?? 1
     for (const name of names) {
       const asset = (availableAssets[layer.folder] ?? []).find(a => a.name === name)
       if (!asset) continue
       try {
         const img = await loadImg(asset.url)
-        if (layer.tintKey) {
-          ctx.drawImage(applyColourOverlay(img, recipe.colours[layer.tintKey] ?? '#FFFFFF'), 0, 0)
+        const tint = resolveTint(layer, name, recipe.colours)
+        if (tint) {
+          ctx.drawImage(applyColourOverlay(img, tint), 0, 0)
         } else {
           ctx.drawImage(img, 0, 0, ART_W, ART_H)
         }
       } catch { /* skip missing layer */ }
     }
+    ctx.globalAlpha = 1
   }
   return canvas
 }

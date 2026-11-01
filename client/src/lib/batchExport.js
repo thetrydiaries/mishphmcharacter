@@ -63,11 +63,13 @@ export async function exportContactSheet(guests, availableAssets, size, { scope 
   const aspect = g.trimW / g.trimH
   const cellImgW = 220
   const cellImgH = Math.round(cellImgW / aspect)
+  const refW = 120            // reference-photo box beside the illustration
+  const gap = 12              // gap between illustration and reference photo
   const pad = 16
   const labelH = 26
-  const cols = Math.min(5, list.length)
+  const cols = Math.min(4, list.length)
   const rows = Math.ceil(list.length / cols)
-  const cellW = cellImgW + pad * 2
+  const cellW = cellImgW + gap + refW + pad * 2
   const cellH = cellImgH + labelH + pad * 2
 
   const sheet = document.createElement('canvas')
@@ -90,16 +92,49 @@ export async function exportContactSheet(guests, availableAssets, size, { scope 
     const x = col * cellW
     const y = 50 + row * cellH
 
+    // reference photo on the left (contain-fit, so it never distorts)
+    const refX = x + pad
+    const refY = y + pad
+    ctx.fillStyle = '#F0ECE8'
+    ctx.fillRect(refX, refY, refW, cellImgH)
+    if (guest.photo) {
+      try {
+        const ref = await new Promise((res, rej) => { const el = new Image(); el.onload = () => res(el); el.onerror = rej; el.src = guest.photo })
+        const scale = Math.min(refW / ref.width, cellImgH / ref.height)
+        const dw = ref.width * scale
+        const dh = ref.height * scale
+        ctx.drawImage(ref, refX + (refW - dw) / 2, refY + (cellImgH - dh) / 2, dw, dh)
+      } catch {
+        // Photo exists on the guest but won't decode (corrupt/truncated) — mark it so a
+        // real data problem is visible, not mistaken for "this guest has no photo".
+        ctx.fillStyle = '#B85C5C'
+        ctx.font = '400 11px system-ui, sans-serif'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('photo error', refX + refW / 2, refY + cellImgH / 2)
+        ctx.textAlign = 'left'
+      }
+    } else {
+      ctx.fillStyle = '#A89F97'
+      ctx.font = '400 11px system-ui, sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('no photo', refX + refW / 2, refY + cellImgH / 2)
+      ctx.textAlign = 'left'
+    }
+
+    // illustration on the right
+    const illX = x + pad + refW + gap
     const dataURL = await renderCharmPNG(guest.recipe, availableAssets, size, { backgroundUrl })
     const img = await new Promise((res, rej) => { const el = new Image(); el.onload = () => res(el); el.onerror = rej; el.src = dataURL })
-    ctx.drawImage(img, x + pad, y + pad, cellImgW, cellImgH)
+    ctx.drawImage(img, illX, y + pad, cellImgW, cellImgH)
 
     // name + status
     ctx.fillStyle = guest.status === 'approved' ? '#5A8A5E' : guest.status === 'needs_revision' ? '#B85C5C' : '#7A6E66'
     ctx.font = '500 13px system-ui, sans-serif'
     ctx.textBaseline = 'top'
     const label = guest.name + (guest.status === 'approved' ? ' ✓' : guest.status === 'needs_revision' ? ' ⚑' : '')
-    ctx.fillText(label.length > 26 ? label.slice(0, 25) + '…' : label, x + pad, y + pad + cellImgH + 6)
+    ctx.fillText(label.length > 26 ? label.slice(0, 25) + '…' : label, illX, y + pad + cellImgH + 6)
   }
 
   const blob = dataURLtoBlob(sheet.toDataURL('image/png'))

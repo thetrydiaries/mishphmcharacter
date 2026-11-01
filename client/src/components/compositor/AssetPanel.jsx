@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ASSET_TINT_OVERRIDES, TINT_DEFAULTS } from './layers'
 
 const CATEGORY_META = [
   { folder: 'frames',      label: 'Card Frame',     recipeKey: 'frame' },
@@ -22,7 +23,25 @@ const COLOUR_PICKERS = [
   { key: 'outfit', label: 'Outfit colour' },
 ]
 
-export default function AssetPanel({ recipe, availableAssets, onSwapAsset, onSetColour, flaggedCategories = [] }) {
+// Colour pickers that only appear when an asset using that tint override is active
+// (e.g. Lips shows only when a lipstick mouth is selected).
+const OVERRIDE_PICKERS = {
+  lips: { key: 'lips', label: 'Lips colour' },
+}
+
+// Which override colour keys are in use by the current recipe's assets.
+function activeOverrideKeys(recipe) {
+  const keys = new Set()
+  for (const value of Object.values(recipe.assets)) {
+    for (const name of (Array.isArray(value) ? value : [value])) {
+      const key = ASSET_TINT_OVERRIDES[name]
+      if (key) keys.add(key)
+    }
+  }
+  return keys
+}
+
+export default function AssetPanel({ recipe, availableAssets, onSwapAsset, onSetColour, onSetOpacity, flaggedCategories = [] }) {
   const [openCategory, setOpenCategory] = useState('hair')
 
   function toggleCategory(folder) {
@@ -114,27 +133,53 @@ export default function AssetPanel({ recipe, availableAssets, onSwapAsset, onSet
           <span style={styles.categoryLabel}>Colours</span>
         </div>
         <div style={styles.colourPickers}>
-          {COLOUR_PICKERS.map(({ key, label }) => (
-            <div key={key} style={styles.colourRow}>
-              <label style={styles.colourLabel}>{label}</label>
-              <div style={styles.colourRight}>
-                <div
-                  style={{
-                    ...styles.colourSwatch,
-                    background: recipe.colours[key] ?? '#888888',
-                  }}
-                />
-                <input
-                  type="color"
-                  value={recipe.colours[key] ?? '#888888'}
-                  onChange={e => onSetColour(key, e.target.value)}
-                  style={styles.colourInput}
-                  title={`Pick ${label}`}
-                />
+          {[
+            ...COLOUR_PICKERS,
+            ...[...activeOverrideKeys(recipe)].map(k => OVERRIDE_PICKERS[k]).filter(Boolean),
+          ].map(({ key, label }) => {
+            const fallback = TINT_DEFAULTS[key] ?? '#888888'
+            return (
+              <div key={key} style={styles.colourRow}>
+                <label style={styles.colourLabel}>{label}</label>
+                <div style={styles.colourRight}>
+                  <div
+                    style={{
+                      ...styles.colourSwatch,
+                      background: recipe.colours[key] ?? fallback,
+                    }}
+                  />
+                  <input
+                    type="color"
+                    value={recipe.colours[key] ?? fallback}
+                    onChange={e => onSetColour(key, e.target.value)}
+                    style={styles.colourInput}
+                    title={`Pick ${label}`}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
+
+        {/* Facial hair opacity — only when a (non-none) beard/stubble is active */}
+        {recipe.assets.facialhair && recipe.assets.facialhair !== 'facialhair_none' && (
+          <div style={styles.opacityRow}>
+            <label style={styles.colourLabel}>Facial hair opacity</label>
+            <div style={styles.opacityRight}>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={recipe.opacities?.facialhair ?? 1}
+                onChange={e => onSetOpacity('facialhair', Number(e.target.value))}
+                style={styles.opacitySlider}
+                title="Facial hair opacity"
+              />
+              <span style={styles.opacityValue}>{Math.round((recipe.opacities?.facialhair ?? 1) * 100)}%</span>
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   )
@@ -259,6 +304,33 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  opacityRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    padding: '0 14px 14px',
+  },
+  opacityRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  opacitySlider: {
+    flex: 1,
+    maxWidth: 120,
+    cursor: 'pointer',
+    accentColor: 'var(--accent)',
+  },
+  opacityValue: {
+    fontSize: 12,
+    color: 'var(--text-muted)',
+    fontFamily: 'var(--font-ui)',
+    minWidth: 34,
+    textAlign: 'right',
   },
   colourLabel: {
     fontSize: 13,

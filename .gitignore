@@ -6,3 +6,8 @@ server/node_modules/
 # macOS
 .DS_Store
 **/.DS_Store
+
+# Runtime-uploaded backgrounds — the folder is a local asset store, not source. Keep the
+# folder (.gitkeep) but never commit uploaded images.
+assets/backgrounds/*
+!assets/backgrounds/.gitkeep

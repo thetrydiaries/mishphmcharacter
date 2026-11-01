@@ -30,7 +30,9 @@ function listPngs(dir, urlBase) {
   if (!fs.existsSync(dir)) return []
   return fs.readdirSync(dir)
     .filter(f => f.toLowerCase().endsWith('.png'))
-    .map(f => ({ name: path.basename(f, '.png'), url: `${urlBase}/${f}` }))
+    // Strip the extension case-insensitively — files saved as .PNG (Procreate's default)
+    // must still resolve to the bare asset name the recipe references.
+    .map(f => ({ name: f.replace(/\.png$/i, ''), url: `${urlBase}/${f}` }))
 }
 
 // ─── Startup check: warn if any mapping rule points at a missing asset ─────────

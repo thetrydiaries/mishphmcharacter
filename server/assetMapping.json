@@ -49,7 +49,8 @@
         { "conditions": { "outfitStyle": "buttonup" },    "asset": "outfit_buttonup" },
         { "conditions": { "outfitStyle": "turtleneck" },  "asset": "outfit_turtleneck" },
         { "conditions": { "outfitStyle": "shirtpocket" }, "asset": "outfit_shirtpocket" },
-        { "conditions": { "outfitStyle": "shirt" },       "asset": "outfit_shirt" }
+        { "conditions": { "outfitStyle": "shirt" },       "asset": "outfit_shirt" },
+        { "conditions": { "outfitStyle": "none" },        "asset": "outfit_none" }
       ]
     },
     "facialhair": {
@@ -113,6 +114,7 @@
     "brows": {
       "default": "brows_thin",
       "rules": [
+        { "conditions": { "gender": "male" },            "asset": "brows_thick" },
         { "conditions": { "browShape": "natural" },      "asset": "brows_thin" },
         { "conditions": { "browShape": "arched" },       "asset": "brows_curved" },
         { "conditions": { "browShape": "straight" },     "asset": "brows_thick" },
@@ -136,7 +138,7 @@
     },
     "frame": {
       "_comment": "Frame is set once per wedding, not per guest — intentional default, never flagged.",
-      "default": "frame_botanical",
+      "default": "frame_none",
       "rules": []
     }
   }

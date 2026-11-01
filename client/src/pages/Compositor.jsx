@@ -19,6 +19,7 @@ export default function Compositor() {
     canRedo,
     swapAsset,
     setColour,
+    setOpacity,
     approve,
     flagRevision,
     reset,
@@ -315,6 +316,7 @@ export default function Compositor() {
           availableAssets={availableAssets ?? {}}
           onSwapAsset={swapAsset}
           onSetColour={setColour}
+          onSetOpacity={setOpacity}
           flaggedCategories={flags}
         />
       </div>

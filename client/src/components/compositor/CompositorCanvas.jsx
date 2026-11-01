@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Stage, Layer, Group, Image as KonvaImage, Rect, Circle, Line } from 'react-konva'
-import { ART_W, ART_H, LAYER_STACK, applyColourOverlay } from './layers'
+import { ART_W, ART_H, LAYER_STACK, applyColourOverlay, resolveTint } from './layers'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 // Props:
@@ -73,7 +73,8 @@ export default function CompositorCanvas({
             try {
               const img = await fetchImg(asset.url)
               if (cancelled) return
-              imgs.push(img)
+              const tint = resolveTint(layer, assetName, recipe.colours)
+              imgs.push(tint ? applyColourOverlay(img, tint) : img)
             } catch { continue }
           }
           next[layer.key] = imgs
@@ -86,9 +87,8 @@ export default function CompositorCanvas({
         try {
           const img = await fetchImg(asset.url)
           if (cancelled) return
-          next[layer.key] = layer.tintKey
-            ? applyColourOverlay(img, recipe.colours[layer.tintKey] ?? '#FFFFFF')
-            : img
+          const tint = resolveTint(layer, assetValue, recipe.colours)
+          next[layer.key] = tint ? applyColourOverlay(img, tint) : img
         } catch { continue }
       }
       if (!cancelled) setLayerImages(next)
@@ -149,12 +149,13 @@ export default function CompositorCanvas({
           {LAYER_STACK.map(layer => {
             const imgs = layerImages[layer.key]
             if (!imgs) return null
+            const opacity = recipe.opacities?.[layer.key] ?? 1
             if (Array.isArray(imgs)) {
               return imgs.map((img, i) => (
-                <KonvaImage key={`${layer.key}-${i}`} image={img} x={0} y={0} width={ART_W} height={ART_H} />
+                <KonvaImage key={`${layer.key}-${i}`} image={img} x={0} y={0} width={ART_W} height={ART_H} opacity={opacity} />
               ))
             }
-            return <KonvaImage key={layer.key} image={imgs} x={0} y={0} width={ART_W} height={ART_H} />
+            return <KonvaImage key={layer.key} image={imgs} x={0} y={0} width={ART_W} height={ART_H} opacity={opacity} />
           })}
         </Group>
       </Layer>

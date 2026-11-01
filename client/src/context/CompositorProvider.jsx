@@ -15,6 +15,7 @@ const BLANK_RECIPE = {
     hair_back: null, hair_front: null, accessory: [],
   },
   colours: { hair: '#3D1F0A', skin: '#C08060', outfit: '#2D3561' },
+  opacities: {},
 }
 
 const DEFAULT_ORDER = { charmSizeId: 'square40', styleId: 'classic', backgroundId: null }
@@ -95,6 +96,9 @@ function reducer(state, action) {
 
     case 'SET_COLOUR':
       return editCurrent(state, { ...current.recipe, colours: { ...current.recipe.colours, [action.colourType]: action.hex } })
+
+    case 'SET_OPACITY':
+      return editCurrent(state, { ...current.recipe, opacities: { ...(current.recipe.opacities ?? {}), [action.layerKey]: action.value } })
 
     case 'SET_STATUS':
       return { ...state, guests: guests.map((g, i) => i === currentIndex ? { ...g, status: action.status } : g) }
@@ -237,6 +241,7 @@ export function CompositorProvider({ children }) {
   // Stable action creators (dispatch is stable) so consumers/effects don't churn each render.
   const swapAsset        = useCallback((category, assetName) => dispatch({ type: 'SWAP_ASSET', category, assetName }), [])
   const setColour        = useCallback((colourType, hex)     => dispatch({ type: 'SET_COLOUR', colourType, hex }), [])
+  const setOpacity       = useCallback((layerKey, value)     => dispatch({ type: 'SET_OPACITY', layerKey, value }), [])
   const loadFromAnalysis = useCallback((recipe, flags)       => dispatch({ type: 'LOAD_FROM_ANALYSIS', recipe, flags }), [])
   const approve          = useCallback(() => dispatch({ type: 'SET_STATUS', status: 'approved' }), [])
   const flagRevision     = useCallback(() => dispatch({ type: 'SET_STATUS', status: 'needs_revision' }), [])
@@ -267,12 +272,12 @@ export function CompositorProvider({ children }) {
     saveError,
     externalChange,
     dismissExternalChange,
-    swapAsset, setColour, loadFromAnalysis, approve, flagRevision, setStatusById,
+    swapAsset, setColour, setOpacity, loadFromAnalysis, approve, flagRevision, setStatusById,
     setName, reset, undo, redo, prevGuest, nextGuest, setCurrent, addGuests,
     removeGuest, setOrder, loadProject, newProject,
   }), [
     order, guests, currentIndex, history.length, future.length, saveError, externalChange,
-    dismissExternalChange, swapAsset, setColour, loadFromAnalysis, approve, flagRevision,
+    dismissExternalChange, swapAsset, setColour, setOpacity, loadFromAnalysis, approve, flagRevision,
     setStatusById, setName, reset, undo, redo, prevGuest, nextGuest, setCurrent, addGuests,
     removeGuest, setOrder, loadProject, newProject,
   ])

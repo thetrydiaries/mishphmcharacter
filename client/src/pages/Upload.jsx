@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCompositor } from '../context/compositorContext'
 
@@ -36,7 +36,7 @@ async function analysePhoto(file) {
 
 export default function Upload() {
   const navigate = useNavigate()
-  const { addGuests, totalGuests } = useCompositor()
+  const { addGuests, totalGuests, order, setOrder } = useCompositor()
   const fileInputRef = useRef(null)
 
   const [dragging, setDragging] = useState(false)
@@ -45,6 +45,29 @@ export default function Upload() {
   const [total, setTotal]       = useState(0)
   const [currentName, setCurrentName] = useState(null)
   const [failures, setFailures] = useState([])
+
+  // Order-level look, chosen up front so the whole batch inherits it (no per-guest fiddling
+  // later). Note: these are render settings — they do NOT affect the Claude analysis or its
+  // cost; the same asset recipe comes back regardless of style/backdrop.
+  const [availableStyles, setAvailableStyles] = useState([])
+  const [backgrounds, setBackgrounds] = useState([])
+
+  useEffect(() => {
+    fetch('/api/styles')
+      .then(r => r.json())
+      .then(data => setAvailableStyles(data.styles ?? []))
+      .catch(() => setAvailableStyles([]))
+  }, [])
+
+  // Backgrounds live in the current style's asset payload; refetch when the style changes.
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/assets?style=${encodeURIComponent(order.styleId)}`)
+      .then(r => r.json())
+      .then(data => { if (!cancelled) setBackgrounds(data?.backgrounds ?? []) })
+      .catch(() => { if (!cancelled) setBackgrounds([]) })
+    return () => { cancelled = true }
+  }, [order.styleId])
 
   const processFiles = useCallback(async (fileList) => {
     const files = Array.from(fileList).filter(isValidFile)
@@ -121,6 +144,39 @@ export default function Upload() {
           guests (e.g. <code style={styles.code}>sarah_jones.jpg</code>) to auto-fill names.
           {totalGuests > 0 && <> You have <strong>{totalGuests}</strong> guest{totalGuests === 1 ? '' : 's'} so far — new uploads are added to them.</>}
         </p>
+
+        <div style={styles.settings}>
+          <p style={styles.settingsHint}>Look for the whole order — applies to every guest, including any already added.</p>
+          {availableStyles.length > 1 && (
+            <label style={styles.settingRow}>
+              <span style={styles.settingLabel}>Style</span>
+              <select
+                value={order.styleId}
+                onChange={e => setOrder({ styleId: e.target.value })}
+                disabled={!isIdle}
+                style={styles.settingSelect}
+              >
+                {availableStyles.map(s => (
+                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label style={styles.settingRow}>
+            <span style={styles.settingLabel}>Backdrop</span>
+            <select
+              value={order.backgroundId ?? ''}
+              onChange={e => setOrder({ backgroundId: e.target.value || null })}
+              disabled={!isIdle}
+              style={styles.settingSelect}
+            >
+              <option value="">None (plain)</option>
+              {backgrounds.map(b => (
+                <option key={b.name} value={b.name}>{b.name.replace(/^bg_/, '').replace(/_/g, ' ')}</option>
+              ))}
+            </select>
+          </label>
+        </div>
 
         <div
           style={{
@@ -215,6 +271,11 @@ const styles = {
   heading: { fontFamily: 'var(--font-heading)', fontSize: 24, marginBottom: 8 },
   sub: { color: 'var(--text-muted)', fontSize: 13, marginBottom: 24, lineHeight: 1.6 },
   code: { fontFamily: 'ui-monospace, monospace', fontSize: 12, background: 'var(--surface-raised)', padding: '1px 5px', borderRadius: 4 },
+  settings: { marginBottom: 18, padding: '14px 16px', background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 8, display: 'flex', flexDirection: 'column', gap: 10 },
+  settingsHint: { fontSize: 12, color: 'var(--text-muted)', margin: 0 },
+  settingRow: { display: 'flex', alignItems: 'center', gap: 10 },
+  settingLabel: { fontSize: 13, fontWeight: 500, color: 'var(--text)', width: 70, flexShrink: 0 },
+  settingSelect: { flex: 1, padding: '7px 9px', fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--text)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' },
   dropZone: { border: '2px dashed var(--border)', borderRadius: 10, padding: '52px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, background: 'var(--surface-raised)', transition: 'border-color 0.15s, background 0.15s', userSelect: 'none' },
   dropZoneActive: { borderColor: 'var(--accent)', background: 'var(--accent-bg)' },
   dropZoneError: { borderColor: 'var(--red)', background: 'var(--red-bg)' },

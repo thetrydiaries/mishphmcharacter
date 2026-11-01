@@ -5,6 +5,16 @@ Format: newest first.
 
 ---
 
+## 2026-11-01 — Upload look-setup + contact-sheet reference photos
+
+- **Contact sheet** now shows the guest's reference photo beside each illustration (photo left, illustration right) so names can be matched to the right drawing at a glance. Photo is contain-fit (no distortion); guests with no photo show a "no photo" placeholder, a photo that won't decode shows a red "photo error" marker so a real data problem isn't hidden
+- Name caption draws under the illustration (not the photo). Grid dropped 5→4 columns to fit the wider cells
+- **Upload page**: pick Style + Backdrop before analysing, up front for the whole order. These are order-level render settings — they do **not** affect the Claude analysis or its cost; same asset recipe comes back regardless. Switching re-renders every guest already in the order (copy says so). No guard yet against picking a partially-drawn style (e.g. Ghibli ~15/51)
+- `.gitignore`: `assets/backgrounds/*` ignored (keeps `.gitkeep`) — uploaded backdrops are a local runtime store, never committed
+- Verified in-browser: both selectors render + persist to the batch order; build + lint pass; qa-review pass (fixed label alignment + silent broken-photo before ship)
+
+---
+
 ## [Refresh] — 2026-10-25 — Cousin's wedding (deadline 7 Nov 2026)
 
 Interrogate gate passed (Go). Why recorded in CLAUDE.md.
