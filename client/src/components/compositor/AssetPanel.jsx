@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ASSET_TINT_OVERRIDES, TINT_DEFAULTS } from './layers'
+import { ASSET_TINT_OVERRIDES, TINT_DEFAULTS, LAYER_STACK } from './layers'
 
 // Panel display order = top-to-bottom of the face (operator workflow),
 // NOT canvas layer order. Render z-order lives in LAYER_STACK (layers.js) —
@@ -33,6 +33,9 @@ const COLOUR_PICKERS = [
 const OVERRIDE_PICKERS = {
   lips:  { key: 'lips',  label: 'Lips colour' },
   metal: { key: 'metal', label: 'Metal colour' },
+  blush: { key: 'blush', label: 'Blush colour' },
+  smileline: { key: 'smileline', label: 'Smile line colour' },
+  tie: { key: 'tie', label: 'Tie colour' },
 }
 
 // Strip the folder prefix from an asset filename for display.
@@ -44,13 +47,19 @@ function variantLabel(name, folder) {
   return stripped.replace(/_/g, ' ') || name
 }
 
-// Which override colour keys are in use by the current recipe's assets.
+// Which toggleable tint keys (lips, metal) are in play for the current recipe.
+// Scans each layer's active asset: a per-asset override wins, else the layer's own
+// tintKey. Only keys that have an OVERRIDE_PICKER surface here (hair/skin/outfit are
+// always-on COLOUR_PICKERS and are excluded). `_none`/empty assets don't count.
 function activeOverrideKeys(recipe) {
   const keys = new Set()
-  for (const value of Object.values(recipe.assets)) {
-    for (const name of (Array.isArray(value) ? value : [value])) {
-      const key = ASSET_TINT_OVERRIDES[name]
-      if (key) keys.add(key)
+  for (const layer of LAYER_STACK) {
+    const value = recipe.assets[layer.key]
+    const names = Array.isArray(value) ? value : (value ? [value] : [])
+    for (const name of names) {
+      if (!name || String(name).endsWith('_none')) continue
+      const key = ASSET_TINT_OVERRIDES[name] ?? layer.tintKey
+      if (key && OVERRIDE_PICKERS[key]) keys.add(key)
     }
   }
   return keys

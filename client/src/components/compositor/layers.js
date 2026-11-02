@@ -15,7 +15,7 @@ export const LAYER_STACK = [
   { key: 'outfit',     folder: 'outfit',      tintKey: 'outfit' },   // z=4  clothing overlay
   { key: 'facialhair', folder: 'facialhair',  tintKey: 'hair' },     // z=5  beard/stubble/none
   { key: 'nose',       folder: 'nose',        tintKey: null },       // z=6
-  { key: 'mouth',      folder: 'mouth',       tintKey: null },       // z=7
+  { key: 'mouth',      folder: 'mouth',       tintKey: 'lips' },     // z=7  all mouths tint to lips colour (white-fill); toggle per guest
   { key: 'eyes',       folder: 'eyes',        tintKey: null },       // z=8  real colour
   { key: 'twinkle',    folder: 'twinkle',     tintKey: null },       // z=9  eye shine
   { key: 'brows',      folder: 'brows',       tintKey: 'hair' },     // z=10 tinted to hair colour (asset must be white-fill)
@@ -27,21 +27,25 @@ export const LAYER_STACK = [
 // renders in real colour. Keyed by asset name → colour key. Lets a single white-fill
 // asset (e.g. lipstick) pick up its own colour without tinting the rest of the layer.
 export const ASSET_TINT_OVERRIDES = {
-  mouth_full_lipstick:  'lips',
-  mouth_neutral_top:    'lips',
-  mouth_neutral_bottom: 'lips',
-  mouth_neutral_both:   'lips',
-  mouth_neutral_colour: 'lips',
+  // Mouths tint to 'lips' via the layer tintKey (covers every mouth asset) — no per-asset entry needed.
   // Earrings drawn in white-fill → tint to a chosen metal colour (gold/silver/rose).
   // (classic accessories_earpiercings_gold/_silver are pre-coloured — not listed, stay real colour.)
   accessories_hoop:     'metal',
   accessories_studs:    'metal',
+  // Blush drawn white-fill → tint to a chosen blush colour.
+  blush:                'blush',
+  accessories_blush:    'blush',
+  // Smile lines drawn white-fill → tint to control shade (darker = pick a darker colour).
+  accessories_smileline: 'smileline',
+  // Tie / bowtie drawn white-fill → tint to a chosen colour (independent of outfit).
+  accessories_tie:       'tie',
+  accessories_bowtie:    'tie',
 }
 
 // Fallback colour when a tint key isn't present on the recipe (e.g. lips, which the AI
 // doesn't detect). Keeps a white asset from rendering untinted-white before the operator
 // touches the picker.
-export const TINT_DEFAULTS = { lips: '#C85A5A', metal: '#D4AF37' }
+export const TINT_DEFAULTS = { lips: '#C85A5A', metal: '#D4AF37', blush: '#E8A0A0', smileline: '#8A6A5A', tie: '#2D3561' }
 
 // Effective tint hex for a layer+asset, or null if it should draw in its real colour.
 // Asset-name overrides win over the layer's default tintKey.

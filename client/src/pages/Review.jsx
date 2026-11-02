@@ -63,10 +63,10 @@ export default function Review() {
 
   async function handleContactSheet() {
     if (!availableAssets) return
-    setBusy('Building contact sheet…')
+    setBusy('Building contact PDF…')
     try {
-      const { count } = await exportContactSheet(guests, availableAssets, size, { scope: 'all', backgroundUrl })
-      setBusy(count ? `Contact sheet: ${count} guests` : 'No guests to export')
+      const { count, pages } = await exportContactSheet(guests, availableAssets, size, { scope: 'all', backgroundUrl })
+      setBusy(count ? `Contact PDF: ${count} guests, ${pages} page${pages === 1 ? '' : 's'}` : 'No guests to export')
     } catch (e) { setBusy('Export failed: ' + e.message) }
     setTimeout(() => setBusy(null), 2500)
   }
@@ -143,7 +143,7 @@ export default function Review() {
           <button style={styles.btn} onClick={() => navigate('/upload')}>+ Upload photos</button>
           <button style={styles.btn} onClick={approveAllVisible} disabled={!shown.length}>Approve all shown</button>
           <button style={styles.btnPrimary} onClick={handleExportZip} disabled={!approvedCount || !availableAssets}>Export approved (ZIP)</button>
-          <button style={styles.btn} onClick={handleContactSheet} disabled={isEmpty || !availableAssets}>Contact sheet</button>
+          <button style={styles.btn} onClick={handleContactSheet} disabled={isEmpty || !availableAssets}>Contact PDF</button>
           <span style={styles.divider} />
           <button style={styles.btnGhost} onClick={() => saveProjectFile(order, guests)} disabled={isEmpty}>Save project</button>
           <button style={styles.btnGhost} onClick={() => loadFileRef.current?.click()}>Load project</button>
