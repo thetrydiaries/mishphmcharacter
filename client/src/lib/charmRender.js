@@ -38,7 +38,7 @@ export async function compositeCharacter(recipe, availableAssets) {
       if (!asset) continue
       try {
         const img = await loadImg(asset.url)
-        const tint = resolveTint(layer, name, recipe.colours)
+        const tint = resolveTint(layer, name, recipe.colours, recipe.tints)
         if (tint) {
           ctx.drawImage(applyColourOverlay(img, tint), 0, 0)
         } else {

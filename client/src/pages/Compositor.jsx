@@ -20,6 +20,7 @@ export default function Compositor() {
     swapAsset,
     setColour,
     setOpacity,
+    setTint,
     approve,
     flagRevision,
     reset,
@@ -317,6 +318,7 @@ export default function Compositor() {
           onSwapAsset={swapAsset}
           onSetColour={setColour}
           onSetOpacity={setOpacity}
+          onSetTint={setTint}
           flaggedCategories={flags}
         />
       </div>

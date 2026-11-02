@@ -73,7 +73,7 @@ export default function CompositorCanvas({
             try {
               const img = await fetchImg(asset.url)
               if (cancelled) return
-              const tint = resolveTint(layer, assetName, recipe.colours)
+              const tint = resolveTint(layer, assetName, recipe.colours, recipe.tints)
               imgs.push(tint ? applyColourOverlay(img, tint) : img)
             } catch { continue }
           }
@@ -87,7 +87,7 @@ export default function CompositorCanvas({
         try {
           const img = await fetchImg(asset.url)
           if (cancelled) return
-          const tint = resolveTint(layer, assetValue, recipe.colours)
+          const tint = resolveTint(layer, assetValue, recipe.colours, recipe.tints)
           next[layer.key] = tint ? applyColourOverlay(img, tint) : img
         } catch { continue }
       }

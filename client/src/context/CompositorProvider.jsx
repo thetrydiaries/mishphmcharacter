@@ -12,10 +12,37 @@ const BLANK_RECIPE = {
   assets: {
     frame: null, body: null, outfit: null, face: null, facialhair: null,
     nose: null, mouth: null, eyes: null, twinkle: null, brows: null,
-    hair_back: null, hair_front: null, accessory: [],
+    hair_back: null, hair_front: [], accessory: [],
   },
   colours: { hair: '#3D1F0A', skin: '#C08060', outfit: '#2D3561' },
   opacities: {},
+  tints: {},  // per tint-key enable flag; `false` = off (render real colour). Undefined = on.
+}
+
+// Asset keys that hold an array of simultaneously-rendered assets (toggle/multi-select).
+// Every renderer branches on Array.isArray, so these must ALWAYS be arrays in state.
+const ARRAY_ASSET_KEYS = ['accessory', 'hair_front']
+
+// Coerce multi-select keys to arrays and migrate legacy single-value recipes.
+// A `_none` placeholder or null/empty becomes [] (nothing rendered).
+function normaliseRecipe(recipe) {
+  if (!recipe?.assets) return recipe
+  const assets = { ...recipe.assets }
+  for (const k of ARRAY_ASSET_KEYS) {
+    const v = assets[k]
+    if (Array.isArray(v)) assets[k] = v.filter(n => n && !String(n).endsWith('_none'))
+    else if (v == null || v === '' || String(v).endsWith('_none')) assets[k] = []
+    else assets[k] = [v]
+  }
+  return { ...recipe, assets }
+}
+
+function normaliseGuest(g) {
+  return {
+    ...g,
+    recipe: normaliseRecipe(g.recipe),
+    aiRecipe: g.aiRecipe ? normaliseRecipe(g.aiRecipe) : g.aiRecipe,
+  }
 }
 
 const DEFAULT_ORDER = { charmSizeId: 'square40', styleId: 'classic', backgroundId: null }
@@ -38,7 +65,7 @@ function loadState() {
     if (!parsed || !Array.isArray(parsed.guests)) return null
     return {
       order: { ...DEFAULT_ORDER, ...(parsed.order ?? {}) },
-      guests: parsed.guests.length ? parsed.guests : [blankGuest()],
+      guests: parsed.guests.length ? parsed.guests.map(normaliseGuest) : [blankGuest()],
       currentIndex: Math.min(parsed.currentIndex ?? 0, Math.max(0, (parsed.guests.length || 1) - 1)),
       history: [],
       future: [],
@@ -100,6 +127,9 @@ function reducer(state, action) {
     case 'SET_OPACITY':
       return editCurrent(state, { ...current.recipe, opacities: { ...(current.recipe.opacities ?? {}), [action.layerKey]: action.value } })
 
+    case 'SET_TINT':
+      return editCurrent(state, { ...current.recipe, tints: { ...(current.recipe.tints ?? {}), [action.tintKey]: action.enabled } })
+
     case 'SET_STATUS':
       return { ...state, guests: guests.map((g, i) => i === currentIndex ? { ...g, status: action.status } : g) }
 
@@ -133,7 +163,7 @@ function reducer(state, action) {
     }
 
     case 'LOAD_FROM_ANALYSIS': {
-      const recipe = { ...action.recipe }
+      const recipe = normaliseRecipe({ ...action.recipe })
       return {
         ...state,
         guests: guests.map((g, i) => i === currentIndex ? { ...g, recipe, aiRecipe: recipe, flags: action.flags ?? g.flags } : g),
@@ -144,7 +174,7 @@ function reducer(state, action) {
     case 'ADD_GUESTS': {
       // Append a batch of analysed guests. If the only existing guest is an untouched
       // blank, replace it so the list doesn't start with a stray "Guest".
-      const incoming = action.guests.map(g => ({ ...blankGuest(g.name), ...g, id: g.id ?? newId() }))
+      const incoming = action.guests.map(g => normaliseGuest({ ...blankGuest(g.name), ...g, id: g.id ?? newId() }))
       const onlyBlank = guests.length === 1 && guests[0].aiRecipe === null && guests[0].name === 'Guest'
       const nextGuests = onlyBlank ? incoming : [...guests, ...incoming]
       return { ...state, guests: nextGuests, currentIndex: onlyBlank ? 0 : currentIndex, history: [], future: [] }
@@ -173,7 +203,7 @@ function reducer(state, action) {
       if (!p || !Array.isArray(p.guests) || !p.guests.length) return state
       return {
         order: { ...DEFAULT_ORDER, ...(p.order ?? {}) },
-        guests: p.guests,
+        guests: p.guests.map(normaliseGuest),
         currentIndex: 0, history: [], future: [],
       }
     }
@@ -242,6 +272,7 @@ export function CompositorProvider({ children }) {
   const swapAsset        = useCallback((category, assetName) => dispatch({ type: 'SWAP_ASSET', category, assetName }), [])
   const setColour        = useCallback((colourType, hex)     => dispatch({ type: 'SET_COLOUR', colourType, hex }), [])
   const setOpacity       = useCallback((layerKey, value)     => dispatch({ type: 'SET_OPACITY', layerKey, value }), [])
+  const setTint          = useCallback((tintKey, enabled)    => dispatch({ type: 'SET_TINT', tintKey, enabled }), [])
   const loadFromAnalysis = useCallback((recipe, flags)       => dispatch({ type: 'LOAD_FROM_ANALYSIS', recipe, flags }), [])
   const approve          = useCallback(() => dispatch({ type: 'SET_STATUS', status: 'approved' }), [])
   const flagRevision     = useCallback(() => dispatch({ type: 'SET_STATUS', status: 'needs_revision' }), [])
@@ -272,12 +303,12 @@ export function CompositorProvider({ children }) {
     saveError,
     externalChange,
     dismissExternalChange,
-    swapAsset, setColour, setOpacity, loadFromAnalysis, approve, flagRevision, setStatusById,
+    swapAsset, setColour, setOpacity, setTint, loadFromAnalysis, approve, flagRevision, setStatusById,
     setName, reset, undo, redo, prevGuest, nextGuest, setCurrent, addGuests,
     removeGuest, setOrder, loadProject, newProject,
   }), [
     order, guests, currentIndex, history.length, future.length, saveError, externalChange,
-    dismissExternalChange, swapAsset, setColour, setOpacity, loadFromAnalysis, approve, flagRevision,
+    dismissExternalChange, swapAsset, setColour, setOpacity, setTint, loadFromAnalysis, approve, flagRevision,
     setStatusById, setName, reset, undo, redo, prevGuest, nextGuest, setCurrent, addGuests,
     removeGuest, setOrder, loadProject, newProject,
   ])

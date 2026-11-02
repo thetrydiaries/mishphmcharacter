@@ -130,7 +130,7 @@ z=11  Accessories (glasses, earrings, hat — drawn in real colour)
 z=12  Hair front / bangs (fringe, face-framing pieces — or transparent 'none')
 ```
 
-The hair split is the critical architectural decision: hair_back sits behind the face so the face oval is always visible, while hair_front (fringe/bangs) sits on top to frame the face naturally. hair_front_none.png (transparent) is required so guests with no fringe still render correctly.
+The hair split is the critical architectural decision: hair_back sits behind the body and face so the face oval is always visible, while hair_front (fringe/bangs) sits on top to frame the face naturally. hair_front is a multi-select array (like accessories) — an empty array means no fringe, so a `hair_front_none` placeholder is NOT required for this category.
 
 Name + wedding date text is overlaid at export time. It is NOT a PNG asset.
 
@@ -161,7 +161,7 @@ Examples:
 - `hair_back_wavy_earLength.png` (camelCase for two-word variants)
 - `hair_front_fringe.png`
 - `hair_front_curtains.png`
-- `hair_front_none.png` (transparent PNG — **required**, for guests with no fringe)
+- (no `hair_front_none` needed — hair_front is a multi-select array; empty = no fringe)
 - `eyes_almond.png`
 - `face_oval.png`
 - `outfit_blazer.png`
@@ -215,7 +215,7 @@ Each illustration is stored in the database as a JSON recipe — NOT as a render
     "eyes":       "eyes_almond",
     "twinkle":    "twinkle_none",
     "brows":      "brow_natural",
-    "hair_front": "hair_front_none",
+    "hair_front": [],
     "accessory":  "accessory_glasses_none"
   },
   "colours": {
@@ -443,13 +443,13 @@ File-write endpoints (background uploads) need a persistent disk; Vercel serverl
 - All assets drawn by hand in Procreate, exported as individual PNGs
 - Tinting via colour overlay — assets drawn in white/near-white, colour picker value becomes exact fill colour (full range including pale tones)
 - sRGB colour mode throughout — never CMYK
-- Hair split into two layers: `hair_back` (z=1, behind face) and `hair_front` (z=12, over face for fringe/bangs). Do not collapse back to a single hair layer — the split is what makes the face oval always visible regardless of hair style.
-- `hair_front_none.png` (fully transparent) must always exist — it is the default for guests with no fringe
+- Hair split into two layers: `hair_back` (z=1, behind body AND face) and `hair_front` (z=12, over face for fringe/bangs). Do not collapse back to a single hair layer — the split is what makes the face oval always visible regardless of hair style.
+- `hair_front` is a multi-select array (like `accessory`) — empty array = no fringe. No `hair_front_none` placeholder needed.
 - Body and outfit are separate recipe keys, separate asset folders, and separate tint colours — body (z=2) uses the skin tone picker, outfit (z=4) uses the outfit colour picker. Body sits behind the face; outfit sits in front of it.
 - Compositor state managed via `useReducer` (not external state library). History stack capped at 10 snapshots.
 - Guest progress persisted to `localStorage` keyed by guest ID, so the illustrator doesn't lose work on page refresh. Key: `mishph_compositor_v1`.
 - Vite dev proxy forwards `/api/*` and `/assets/*` to Express on port 3001. Frontend uses relative URLs — never hardcode `localhost:3001`.
-- The `accessory` recipe key is an array. Multiple accessories render simultaneously (glasses + blush + eyelashes etc). Female guests auto-receive blush + eyelashes via mapping rules. Panel uses toggle UI (click to add/remove).
+- The `accessory` and `hair_front` recipe keys are arrays. Multiple assets render simultaneously (accessories: glasses + blush + eyelashes; hair_front: stacked fringe pieces). Female guests auto-receive blush + eyelashes via mapping rules. Panels use toggle UI (click to add/remove). Array keys are normalised on recipe load (`ARRAY_ASSET_KEYS` in CompositorProvider) so legacy single-value data migrates automatically.
 
 ---
 
