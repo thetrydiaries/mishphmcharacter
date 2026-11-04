@@ -13,7 +13,7 @@ export default function Review() {
   const navigate = useNavigate()
   const {
     order, guests, totalGuests, approvedCount,
-    setCurrent, setStatusById, setName, removeGuest, setOrder,
+    setCurrent, setStatusById, setName, removeGuest, setOrder, addGuests,
     loadProject, newProject, saveError, externalChange, dismissExternalChange,
   } = useCompositor()
 
@@ -45,6 +45,12 @@ export default function Review() {
   function openGuest(id) {
     const idx = guests.findIndex(g => g.id === id)
     if (idx >= 0) { setCurrent(idx); navigate('/compositor') }
+  }
+
+  // Add a photo-less guest (blank recipe, no AI) and jump straight into the compositor.
+  function addBlankPerson() {
+    addGuests([{ name: `Guest ${guests.length + 1}` }], { open: true })
+    navigate('/compositor')
   }
 
   function approveAllVisible() {
@@ -141,6 +147,7 @@ export default function Review() {
         </div>
         <div style={styles.actionGroup}>
           <button style={styles.btn} onClick={() => navigate('/upload')}>+ Upload photos</button>
+          <button style={styles.btn} onClick={addBlankPerson}>+ Add person (no photo)</button>
           <button style={styles.btn} onClick={approveAllVisible} disabled={!shown.length}>Approve all shown</button>
           <button style={styles.btnPrimary} onClick={handleExportZip} disabled={!approvedCount || !availableAssets}>Export approved (ZIP)</button>
           <button style={styles.btn} onClick={handleContactSheet} disabled={isEmpty || !availableAssets}>Contact PDF</button>
@@ -157,8 +164,11 @@ export default function Review() {
       {/* Grid */}
       {isEmpty ? (
         <div style={styles.emptyState}>
-          <p style={styles.emptyText}>No guests yet. Upload a batch of photos to get started.</p>
-          <button style={styles.btnPrimary} onClick={() => navigate('/upload')}>+ Upload photos</button>
+          <p style={styles.emptyText}>No guests yet. Upload a batch of photos to get started, or add a person manually.</p>
+          <div style={styles.actionGroup}>
+            <button style={styles.btnPrimary} onClick={() => navigate('/upload')}>+ Upload photos</button>
+            <button style={styles.btn} onClick={addBlankPerson}>+ Add person (no photo)</button>
+          </div>
         </div>
       ) : (
         <div style={styles.grid}>

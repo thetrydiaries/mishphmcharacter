@@ -177,7 +177,11 @@ function reducer(state, action) {
       const incoming = action.guests.map(g => normaliseGuest({ ...blankGuest(g.name), ...g, id: g.id ?? newId() }))
       const onlyBlank = guests.length === 1 && guests[0].aiRecipe === null && guests[0].name === 'Guest'
       const nextGuests = onlyBlank ? incoming : [...guests, ...incoming]
-      return { ...state, guests: nextGuests, currentIndex: onlyBlank ? 0 : currentIndex, history: [], future: [] }
+      // `open` selects the first newly-added guest (so the caller can jump straight into
+      // the compositor without a stale-closure race on its index).
+      const firstNewIndex = onlyBlank ? 0 : guests.length
+      const nextIndex = action.open ? firstNewIndex : (onlyBlank ? 0 : currentIndex)
+      return { ...state, guests: nextGuests, currentIndex: nextIndex, history: [], future: [] }
     }
 
     case 'REMOVE_GUEST': {
@@ -284,7 +288,7 @@ export function CompositorProvider({ children }) {
   const prevGuest        = useCallback(() => dispatch({ type: 'NAVIGATE', delta: -1 }), [])
   const nextGuest        = useCallback(() => dispatch({ type: 'NAVIGATE', delta: 1 }), [])
   const setCurrent       = useCallback((index) => dispatch({ type: 'SET_CURRENT', index }), [])
-  const addGuests        = useCallback((newGuests) => dispatch({ type: 'ADD_GUESTS', guests: newGuests }), [])
+  const addGuests        = useCallback((newGuests, opts) => dispatch({ type: 'ADD_GUESTS', guests: newGuests, open: opts?.open }), [])
   const removeGuest      = useCallback((id) => dispatch({ type: 'REMOVE_GUEST', id }), [])
   const setOrder         = useCallback((patch) => dispatch({ type: 'SET_ORDER', patch }), [])
   const loadProject      = useCallback((project) => dispatch({ type: 'LOAD_PROJECT', project }), [])

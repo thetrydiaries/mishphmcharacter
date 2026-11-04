@@ -46,6 +46,7 @@ const OVERRIDE_PICKERS = {
   smileline: { key: 'smileline', label: 'Smile line colour' },
   tie: { key: 'tie', label: 'Tie colour' },
   bib: { key: 'bib', label: 'Bib colour' },
+  hairtie: { key: 'hairtie', label: 'Hair tie colour' },
 }
 
 // Assets that get their own opacity slider (keyed by asset name, not layer) so a single

@@ -37,6 +37,7 @@ export const ASSET_TINT_OVERRIDES = {
   blush:                'blush',
   accessories_blush:    'blush',
   blush_baby:           'blush',
+  accessories_child_blush: 'blush',
   // Smile lines drawn white-fill → tint to control shade (darker = pick a darker colour).
   accessories_smileline: 'smileline',
   // Tie / bowtie drawn white-fill → tint to a chosen colour (independent of outfit).
@@ -44,12 +45,14 @@ export const ASSET_TINT_OVERRIDES = {
   accessories_bowtie:    'tie',
   // Baby bib drawn white-fill → its own colour, independent of the main outfit tint.
   outfit_babybib:        'bib',
+  // Hair ties drawn white-fill → their own colour, independent of the main outfit tint.
+  outfit_hairties:       'hairtie',
 }
 
 // Fallback colour when a tint key isn't present on the recipe (e.g. lips, which the AI
 // doesn't detect). Keeps a white asset from rendering untinted-white before the operator
 // touches the picker.
-export const TINT_DEFAULTS = { lips: '#C85A5A', metal: '#D4AF37', blush: '#E8A0A0', smileline: '#8A6A5A', tie: '#2D3561', bib: '#D9C7E8' }
+export const TINT_DEFAULTS = { lips: '#C85A5A', metal: '#D4AF37', blush: '#E8A0A0', smileline: '#8A6A5A', tie: '#2D3561', bib: '#D9C7E8', hairtie: '#E86A9A' }
 
 // Effective tint hex for a layer+asset, or null if it should draw in its real colour.
 // Asset-name overrides win over the layer's default tintKey.
