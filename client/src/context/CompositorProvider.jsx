@@ -10,7 +10,7 @@ const MAX_HISTORY = 10
 
 const BLANK_RECIPE = {
   assets: {
-    frame: null, body: null, outfit: null, face: null, facialhair: null,
+    frame: null, body: null, outfit: [], face: null, facialhair: null,
     nose: null, mouth: null, eyes: null, twinkle: null, brows: null,
     hair_back: null, hair_front: [], accessory: [],
   },
@@ -21,7 +21,7 @@ const BLANK_RECIPE = {
 
 // Asset keys that hold an array of simultaneously-rendered assets (toggle/multi-select).
 // Every renderer branches on Array.isArray, so these must ALWAYS be arrays in state.
-const ARRAY_ASSET_KEYS = ['accessory', 'hair_front']
+const ARRAY_ASSET_KEYS = ['accessory', 'hair_front', 'outfit']
 
 // Coerce multi-select keys to arrays and migrate legacy single-value recipes.
 // A `_none` placeholder or null/empty becomes [] (nothing rendered).

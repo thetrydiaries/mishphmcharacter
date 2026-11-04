@@ -32,20 +32,24 @@ export const ASSET_TINT_OVERRIDES = {
   // (classic accessories_earpiercings_gold/_silver are pre-coloured — not listed, stay real colour.)
   accessories_hoop:     'metal',
   accessories_studs:    'metal',
+  accessories_nosering: 'metal',
   // Blush drawn white-fill → tint to a chosen blush colour.
   blush:                'blush',
   accessories_blush:    'blush',
+  blush_baby:           'blush',
   // Smile lines drawn white-fill → tint to control shade (darker = pick a darker colour).
   accessories_smileline: 'smileline',
   // Tie / bowtie drawn white-fill → tint to a chosen colour (independent of outfit).
   accessories_tie:       'tie',
   accessories_bowtie:    'tie',
+  // Baby bib drawn white-fill → its own colour, independent of the main outfit tint.
+  outfit_babybib:        'bib',
 }
 
 // Fallback colour when a tint key isn't present on the recipe (e.g. lips, which the AI
 // doesn't detect). Keeps a white asset from rendering untinted-white before the operator
 // touches the picker.
-export const TINT_DEFAULTS = { lips: '#C85A5A', metal: '#D4AF37', blush: '#E8A0A0', smileline: '#8A6A5A', tie: '#2D3561' }
+export const TINT_DEFAULTS = { lips: '#C85A5A', metal: '#D4AF37', blush: '#E8A0A0', smileline: '#8A6A5A', tie: '#2D3561', bib: '#D9C7E8' }
 
 // Effective tint hex for a layer+asset, or null if it should draw in its real colour.
 // Asset-name overrides win over the layer's default tintKey.
@@ -55,6 +59,12 @@ export function resolveTint(layer, assetName, colours = {}, tints = {}) {
   if (!key) return null
   if (tints[key] === false) return null
   return colours[key] ?? TINT_DEFAULTS[key] ?? '#FFFFFF'
+}
+
+// Effective opacity for a layer+asset. A per-asset entry (keyed by asset name, e.g. a
+// mole's own slider) wins over the layer-level opacity; both default to fully opaque.
+export function resolveOpacity(layerKey, assetName, opacities = {}) {
+  return opacities[assetName] ?? opacities[layerKey] ?? 1
 }
 
 // Colour overlay tint: assets drawn with white/near-white fills + pure black outlines.

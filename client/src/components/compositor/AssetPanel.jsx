@@ -1,5 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ASSET_TINT_OVERRIDES, TINT_DEFAULTS, LAYER_STACK } from './layers'
+
+// Normalise a typed hex string to #RRGGBB (upper), or null if not a valid hex.
+// Accepts with/without leading #, and 3-digit shorthand (#abc → #AABBCC).
+function normaliseHex(raw) {
+  let v = String(raw).trim().replace(/^#/, '')
+  if (/^[0-9a-fA-F]{3}$/.test(v)) v = v.split('').map(c => c + c).join('')
+  if (/^[0-9a-fA-F]{6}$/.test(v)) return '#' + v.toUpperCase()
+  return null
+}
 
 // Panel display order = top-to-bottom of the face (operator workflow),
 // NOT canvas layer order. Render z-order lives in LAYER_STACK (layers.js) —
@@ -36,6 +45,14 @@ const OVERRIDE_PICKERS = {
   blush: { key: 'blush', label: 'Blush colour' },
   smileline: { key: 'smileline', label: 'Smile line colour' },
   tie: { key: 'tie', label: 'Tie colour' },
+  bib: { key: 'bib', label: 'Bib colour' },
+}
+
+// Assets that get their own opacity slider (keyed by asset name, not layer) so a single
+// piece can be faded without dimming the rest of its layer — e.g. softening a mole.
+const PER_ASSET_OPACITY = {
+  accessories_moles: 'Moles opacity',
+  accessories_nose_mole: 'Nose mole opacity',
 }
 
 // Strip the folder prefix from an asset filename for display.
@@ -63,6 +80,65 @@ function activeOverrideKeys(recipe) {
     }
   }
   return keys
+}
+
+// One colour-picker row: swatch + native picker + editable hex field.
+// The hex field keeps local text while typing so partial input doesn't fight the
+// controlled value; on blur/Enter it commits a valid hex or reverts to current.
+function ColourRow({ tintKey, label, toggleable, current, tintOn, onSetColour, onSetTint }) {
+  const [text, setText] = useState(current)
+  // Resync when the colour changes elsewhere (native picker, reset, guest nav).
+  useEffect(() => { setText(current) }, [current])
+
+  const disabled = toggleable && !tintOn
+  const commit = () => {
+    const hex = normaliseHex(text)
+    if (hex) onSetColour(tintKey, hex)
+    else setText(current)
+  }
+
+  return (
+    <div style={styles.colourRow}>
+      {toggleable ? (
+        <label style={{ ...styles.colourLabel, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={tintOn}
+            onChange={e => onSetTint(tintKey, e.target.checked)}
+            style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
+            title={`Tint ${label.toLowerCase()}`}
+          />
+          {label}
+        </label>
+      ) : (
+        <label style={styles.colourLabel}>{label}</label>
+      )}
+      <div style={{ ...styles.colourRight, opacity: disabled ? 0.4 : 1 }}>
+        <div style={{ ...styles.colourSwatch, background: current }} />
+        <input
+          type="color"
+          value={current}
+          onChange={e => onSetColour(tintKey, e.target.value)}
+          disabled={disabled}
+          style={styles.colourInput}
+          title={disabled ? `${label} tint is off` : `Pick ${label}`}
+        />
+        <input
+          type="text"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
+          disabled={disabled}
+          spellCheck={false}
+          maxLength={7}
+          style={styles.hexInput}
+          title={disabled ? `${label} tint is off` : `Hex code for ${label}`}
+          aria-label={`${label} hex code`}
+        />
+      </div>
+    </div>
+  )
 }
 
 export default function AssetPanel({ recipe, availableAssets, onSwapAsset, onSetColour, onSetOpacity, onSetTint, flaggedCategories = [] }) {
@@ -169,44 +245,18 @@ export default function AssetPanel({ recipe, availableAssets, onSwapAsset, onSet
             // Override pickers (e.g. lips) are toggleable — tint can be switched off
             // so the asset renders in its own drawn colour instead.
             ...[...activeOverrideKeys(recipe)].map(k => OVERRIDE_PICKERS[k]).filter(Boolean).map(p => ({ ...p, toggleable: true })),
-          ].map(({ key, label, toggleable }) => {
-            const fallback = TINT_DEFAULTS[key] ?? '#888888'
-            const tintOn = recipe.tints?.[key] !== false
-            return (
-              <div key={key} style={styles.colourRow}>
-                {toggleable ? (
-                  <label style={{ ...styles.colourLabel, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={tintOn}
-                      onChange={e => onSetTint(key, e.target.checked)}
-                      style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
-                      title={`Tint ${label.toLowerCase()}`}
-                    />
-                    {label}
-                  </label>
-                ) : (
-                  <label style={styles.colourLabel}>{label}</label>
-                )}
-                <div style={{ ...styles.colourRight, opacity: toggleable && !tintOn ? 0.4 : 1 }}>
-                  <div
-                    style={{
-                      ...styles.colourSwatch,
-                      background: recipe.colours[key] ?? fallback,
-                    }}
-                  />
-                  <input
-                    type="color"
-                    value={recipe.colours[key] ?? fallback}
-                    onChange={e => onSetColour(key, e.target.value)}
-                    disabled={toggleable && !tintOn}
-                    style={styles.colourInput}
-                    title={toggleable && !tintOn ? `${label} tint is off` : `Pick ${label}`}
-                  />
-                </div>
-              </div>
-            )
-          })}
+          ].map(({ key, label, toggleable }) => (
+            <ColourRow
+              key={key}
+              tintKey={key}
+              label={label}
+              toggleable={toggleable}
+              current={recipe.colours[key] ?? TINT_DEFAULTS[key] ?? '#888888'}
+              tintOn={recipe.tints?.[key] !== false}
+              onSetColour={onSetColour}
+              onSetTint={onSetTint}
+            />
+          ))}
         </div>
 
         {/* Facial hair opacity — only when a (non-none) beard/stubble is active */}
@@ -252,6 +302,28 @@ export default function AssetPanel({ recipe, availableAssets, onSwapAsset, onSet
             </div>
           </div>
         )}
+
+        {/* Per-asset opacity — one slider per active asset flagged in PER_ASSET_OPACITY (e.g. moles) */}
+        {(recipe.assets.accessory ?? [])
+          .filter(name => PER_ASSET_OPACITY[name])
+          .map(name => (
+            <div key={name} style={styles.opacityRow}>
+              <label style={styles.colourLabel}>{PER_ASSET_OPACITY[name]}</label>
+              <div style={styles.opacityRight}>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={recipe.opacities?.[name] ?? 1}
+                  onChange={e => onSetOpacity(name, Number(e.target.value))}
+                  style={styles.opacitySlider}
+                  title={PER_ASSET_OPACITY[name]}
+                />
+                <span style={styles.opacityValue}>{Math.round((recipe.opacities?.[name] ?? 1) * 100)}%</span>
+              </div>
+            </div>
+          ))}
       </div>
     </aside>
   )
@@ -435,5 +507,17 @@ const styles = {
     borderRadius: 4,
     cursor: 'pointer',
     background: 'none',
+  },
+  hexInput: {
+    width: 72,
+    height: 28,
+    padding: '0 6px',
+    border: '1px solid var(--border)',
+    borderRadius: 4,
+    fontSize: 12,
+    fontFamily: 'var(--font-mono, monospace)',
+    textTransform: 'uppercase',
+    color: 'var(--text)',
+    background: 'var(--surface, #fff)',
   },
 }

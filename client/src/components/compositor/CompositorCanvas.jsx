@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Stage, Layer, Group, Image as KonvaImage, Rect, Circle, Line } from 'react-konva'
-import { ART_W, ART_H, LAYER_STACK, applyColourOverlay, resolveTint } from './layers'
+import { ART_W, ART_H, LAYER_STACK, applyColourOverlay, resolveTint, resolveOpacity } from './layers'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 // Props:
@@ -74,7 +74,7 @@ export default function CompositorCanvas({
               const img = await fetchImg(asset.url)
               if (cancelled) return
               const tint = resolveTint(layer, assetName, recipe.colours, recipe.tints)
-              imgs.push(tint ? applyColourOverlay(img, tint) : img)
+              imgs.push({ name: assetName, img: tint ? applyColourOverlay(img, tint) : img })
             } catch { continue }
           }
           next[layer.key] = imgs
@@ -149,13 +149,12 @@ export default function CompositorCanvas({
           {LAYER_STACK.map(layer => {
             const imgs = layerImages[layer.key]
             if (!imgs) return null
-            const opacity = recipe.opacities?.[layer.key] ?? 1
             if (Array.isArray(imgs)) {
-              return imgs.map((img, i) => (
-                <KonvaImage key={`${layer.key}-${i}`} image={img} x={0} y={0} width={ART_W} height={ART_H} opacity={opacity} />
+              return imgs.map(({ name, img }, i) => (
+                <KonvaImage key={`${layer.key}-${i}`} image={img} x={0} y={0} width={ART_W} height={ART_H} opacity={resolveOpacity(layer.key, name, recipe.opacities)} />
               ))
             }
-            return <KonvaImage key={layer.key} image={imgs} x={0} y={0} width={ART_W} height={ART_H} opacity={opacity} />
+            return <KonvaImage key={layer.key} image={imgs} x={0} y={0} width={ART_W} height={ART_H} opacity={recipe.opacities?.[layer.key] ?? 1} />
           })}
         </Group>
       </Layer>

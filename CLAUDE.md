@@ -207,7 +207,7 @@ Each illustration is stored in the database as a JSON recipe — NOT as a render
     "frame":      "frame_botanical",
     "hair_back":  "hair_back_curly_shoulder",
     "body":       "body_average",
-    "outfit":     "outfit_blazer",
+    "outfit":     ["outfit_shirt", "outfit_blazer"],
     "face":       "face_oval",
     "facialhair": "facialhair_none",
     "nose":       "nose_button",
@@ -449,7 +449,7 @@ File-write endpoints (background uploads) need a persistent disk; Vercel serverl
 - Compositor state managed via `useReducer` (not external state library). History stack capped at 10 snapshots.
 - Guest progress persisted to `localStorage` keyed by guest ID, so the illustrator doesn't lose work on page refresh. Key: `mishph_compositor_v1`.
 - Vite dev proxy forwards `/api/*` and `/assets/*` to Express on port 3001. Frontend uses relative URLs — never hardcode `localhost:3001`.
-- The `accessory` and `hair_front` recipe keys are arrays. Multiple assets render simultaneously (accessories: glasses + blush + eyelashes; hair_front: stacked fringe pieces). Female guests auto-receive blush + eyelashes via mapping rules. Panels use toggle UI (click to add/remove). Array keys are normalised on recipe load (`ARRAY_ASSET_KEYS` in CompositorProvider) so legacy single-value data migrates automatically.
+- The `accessory`, `hair_front`, and `outfit` recipe keys are arrays. Multiple assets render simultaneously (accessories: glasses + blush + eyelashes; hair_front: stacked fringe pieces; outfit: layered clothing e.g. shirt + blazer). Female guests auto-receive blush + eyelashes via mapping rules. Panels use toggle UI (click to add/remove). Array keys are normalised on recipe load (`ARRAY_ASSET_KEYS` in CompositorProvider) so legacy single-value data migrates automatically. Outfit pieces stack in toggle order (add the under-layer first) and all share the one outfit tint colour — per-piece colour needs a per-asset tint override (like `accessories_tie`).
 
 ---
 
